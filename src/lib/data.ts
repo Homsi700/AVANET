@@ -2,9 +2,7 @@
 
 import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, Device, AddPppoeUserPayload, NewDevicePayload, DeviceCredentials, ResourceData } from './types';
 import * as api from './api';
-
-// In-memory store for devices. In a real application, this would be a database.
-const devices: (Server | Dish)[] = [];
+import { readDB, writeDB } from './db';
 
 const getDeviceCredentials = (device: Device): DeviceCredentials => {
     const credentials: DeviceCredentials = {
@@ -21,8 +19,9 @@ const getDeviceCredentials = (device: Device): DeviceCredentials => {
 // --- Query functions ---
 
 export const getDevices = async (): Promise<Device[]> => {
-  console.log("Fetching all devices from the in-memory store.");
-  // In a real app, you would fetch the list of devices from your database here.
+  console.log("Fetching all devices from the database file.");
+  const db = await readDB();
+  const devices = db.devices || [];
   
   // For each device, fetch its live status from the actual device API.
   const liveDevices = await Promise.all(devices.map(async (device) => {
@@ -47,7 +46,8 @@ export const getServers = async (): Promise<Server[]> => {
 };
 
 export const getServerById = async (id: string): Promise<Server | undefined> => {
-    const server = devices.find(s => s.id === id && s.type === 'MikroTik') as Server | undefined;
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === id && s.type === 'MikroTik') as Server | undefined;
     if (!server) return undefined;
 
     try {
@@ -66,7 +66,8 @@ export const getDishes = async (): Promise<Dish[]> => {
 };
 
 export const getDishById = async (id: string): Promise<Dish | undefined> => {
-  const dish = devices.find(d => d.id === id && (d.type === 'UBNT' || d.type === 'Mimosa')) as Dish | undefined;
+  const db = await readDB();
+  const dish = db.devices.find(d => d.id === id && (d.type === 'UBNT' || d.type === 'Mimosa')) as Dish | undefined;
   if (!dish) return undefined;
   
    try {
@@ -80,7 +81,8 @@ export const getDishById = async (id: string): Promise<Dish | undefined> => {
 };
 
 export const getPppoeUsers = async (serverId: string): Promise<PppoeUser[]> => {
-    const server = devices.find(s => s.id === serverId);
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === serverId);
     if (!server) return [];
     try {
         const credentials = getDeviceCredentials(server);
@@ -92,7 +94,8 @@ export const getPppoeUsers = async (serverId: string): Promise<PppoeUser[]> => {
 }
 
 export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat[]> => {
-    const server = devices.find(s => s.id === serverId);
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === serverId);
     if (!server) return [];
      try {
         const credentials = getDeviceCredentials(server);
@@ -104,7 +107,8 @@ export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat
 }
 
 export const getTrafficData = async (serverId: string): Promise<TrafficData> => {
-    const server = devices.find(s => s.id === serverId);
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === serverId);
     if (!server) return [];
      try {
         const credentials = getDeviceCredentials(server);
@@ -116,7 +120,8 @@ export const getTrafficData = async (serverId: string): Promise<TrafficData> => 
 }
 
 export const getResourceData = async (serverId: string): Promise<ResourceData> => {
-    const server = devices.find(s => s.id === serverId);
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === serverId);
     if (!server) return [];
      try {
         const credentials = getDeviceCredentials(server);
@@ -184,13 +189,16 @@ export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => 
         };
     }
     
-    devices.push(newDevice);
-    console.log("Device added:", newDevice);
-    console.log("Current devices in store:", devices);
+    const db = await readDB();
+    db.devices.push(newDevice);
+    await writeDB(db);
+
+    console.log("Device added to db.json:", newDevice);
 }
 
 export const addPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
-    const server = devices.find(d => d.id === payload.serverId);
+    const db = await readDB();
+    const server = db.devices.find(d => d.id === payload.serverId);
     if (!server || server.type !== 'MikroTik') {
         throw new Error("لم يتم العثور على السيرفر أو أنه ليس من نوع MikroTik.");
     }
