@@ -147,6 +147,16 @@ export const getResourceData = async (serverId: string): Promise<ResourceData> =
 // --- Mutation functions ---
 
 export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => {
+    // Automatically split IP and port if they are entered together
+    if (deviceData.ip.includes(':')) {
+        const [ip, port] = deviceData.ip.split(':');
+        deviceData.ip = ip;
+        // If it's a server, assign the port. This avoids adding a port to a dish.
+        if (deviceData.type === 'server' && !deviceData.port) {
+            deviceData.port = parseInt(port, 10);
+        }
+    }
+    
     const credentials: DeviceCredentials = {
         ip: deviceData.ip,
         username: deviceData.username,
