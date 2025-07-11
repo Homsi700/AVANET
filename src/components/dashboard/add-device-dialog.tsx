@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,18 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
                     عنوان IP
                   </Label>
                   <Input id="dish-ip" defaultValue="10.10.0.2" className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="dish-username" className="text-right">
+                    اسم المستخدم
+                  </Label>
+                  <Input id="dish-username" defaultValue="ubnt" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="dish-password" className="text-right">
+                    كلمة المرور
+                  </Label>
+                  <Input id="dish-password" type="password" className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
