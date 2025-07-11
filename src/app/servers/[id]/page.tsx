@@ -17,7 +17,8 @@ export default async function ServerDetailPage({
 }: {
   params: { id: string };
 }) {
-  const server = await getServerById(params.id);
+  const { id } = params;
+  const server = await getServerById(id);
 
   if (!server) {
     notFound();

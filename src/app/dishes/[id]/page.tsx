@@ -11,7 +11,8 @@ export default async function DishDetailPage({
 }: {
   params: { id: string };
 }) {
-  const dish = await getDishById(params.id);
+  const { id } = params;
+  const dish = await getDishById(id);
 
   if (!dish) {
     notFound();
