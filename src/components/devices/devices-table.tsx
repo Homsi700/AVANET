@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
-import type { Device } from '@/lib/types';
+import type { Device, Server } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -70,7 +70,7 @@ export function DevicesTable({ devices }: { devices: Device[] }) {
             {devices.map((device) => (
               <TableRow key={device.id}>
                 <TableCell className="font-medium">{device.name}</TableCell>
-                <TableCell>{device.ip}</TableCell>
+                <TableCell>{device.ip}{device.type === 'MikroTik' && (device as Server).port ? `:${(device as Server).port}`: ''}</TableCell>
                 <TableCell>{device.type}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusVariant(device.status)}>{device.status}</Badge>

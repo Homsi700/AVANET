@@ -57,6 +57,12 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
                   <Input id="server-ip" defaultValue="192.168.88.1" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="server-port" className="text-right">
+                    المنفذ
+                  </Label>
+                  <Input id="server-port" type="number" defaultValue="8728" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="server-username" className="text-right">
                     اسم المستخدم
                   </Label>

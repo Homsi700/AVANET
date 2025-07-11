@@ -10,6 +10,7 @@ export interface BaseDevice {
 
 export interface Server extends BaseDevice {
   type: 'MikroTik';
+  port?: number;
   cpuUsage: number;
   memoryUsage: number;
   activePppoe: number;
