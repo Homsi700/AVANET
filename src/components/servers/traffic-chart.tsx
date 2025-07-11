@@ -1,33 +1,15 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getTrafficData } from '@/lib/data';
 import type { TrafficData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
-export function TrafficChart({ serverId }: { serverId: string }) {
-  const [data, setData] = useState<TrafficData>([]);
-  const [loading, setLoading] = useState(true);
+export function TrafficChart({ initialData }: { initialData: TrafficData }) {
+  const [data, setData] = useState<TrafficData>(initialData);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const trafficData = await getTrafficData(serverId);
-        setData(trafficData);
-      } catch (error) {
-        console.error("Failed to fetch traffic data:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [serverId]);
-
-  if (loading) {
+  if (!data || data.length === 0) {
       return <Skeleton className="h-[350px] w-full" />;
   }
 

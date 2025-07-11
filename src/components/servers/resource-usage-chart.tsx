@@ -1,33 +1,15 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getResourceData } from '@/lib/data';
 import type { ResourceData } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 
-export function ResourceUsageChart({ serverId }: { serverId: string }) {
-  const [data, setData] = useState<ResourceData>([]);
-  const [loading, setLoading] = useState(true);
+export function ResourceUsageChart({ initialData }: { initialData: ResourceData }) {
+  const [data, setData] = useState<ResourceData>(initialData);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const resourceData = await getResourceData(serverId);
-        setData(resourceData);
-      } catch (error) {
-        console.error("Failed to fetch resource data:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [serverId]);
-
-  if (loading) {
+  if (!data || data.length === 0) {
       return <Skeleton className="h-[350px] w-full" />;
   }
 

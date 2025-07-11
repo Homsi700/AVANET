@@ -1,5 +1,11 @@
 import { notFound } from 'next/navigation';
-import { getServerById } from '@/lib/data';
+import {
+  getServerById,
+  getPppoeUsers,
+  getInterfaceStats,
+  getResourceData,
+  getTrafficData,
+} from '@/lib/data';
 import { PageHeader } from '@/components/layout/page-header';
 import { ServerDetailsClient } from '@/components/servers/server-details-client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +23,15 @@ export default async function ServerDetailPage({
     notFound();
   }
 
+  // Fetch all required data on the server
+  const [pppoeUsers, interfaceStats, resourceData, trafficData] =
+    await Promise.all([
+      getPppoeUsers(server.id),
+      getInterfaceStats(server.id),
+      getResourceData(server.id),
+      getTrafficData(server.id),
+    ]);
+
   return (
     <div className="flex h-screen flex-col">
       <PageHeader title={server.name}>
@@ -27,7 +42,13 @@ export default async function ServerDetailPage({
           </Link>
         </Button>
       </PageHeader>
-      <ServerDetailsClient server={server} />
+      <ServerDetailsClient
+        server={server}
+        initialPppoeUsers={pppoeUsers}
+        initialInterfaceStats={interfaceStats}
+        initialResourceData={resourceData}
+        initialTrafficData={trafficData}
+      />
     </div>
   );
 }

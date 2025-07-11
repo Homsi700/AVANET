@@ -1,5 +1,4 @@
 
-
 import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, Device, AddPppoeUserPayload, NewDevicePayload, DeviceCredentials, ResourceData } from './types';
 import * as api from './api';
 import { readDB, writeDB } from './db';
@@ -83,7 +82,10 @@ export const getDishById = async (id: string): Promise<Dish | undefined> => {
 export const getPppoeUsers = async (serverId: string): Promise<PppoeUser[]> => {
     const db = await readDB();
     const server = db.devices.find(s => s.id === serverId);
-    if (!server) return [];
+    if (!server) {
+        console.error(`Server with id ${serverId} not found for getPppoeUsers.`);
+        return [];
+    }
     try {
         const credentials = getDeviceCredentials(server);
         return await api.fetchPppoeUsers(credentials);
@@ -96,7 +98,10 @@ export const getPppoeUsers = async (serverId: string): Promise<PppoeUser[]> => {
 export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat[]> => {
     const db = await readDB();
     const server = db.devices.find(s => s.id === serverId);
-    if (!server) return [];
+    if (!server) {
+         console.error(`Server with id ${serverId} not found for getInterfaceStats.`);
+        return [];
+    }
      try {
         const credentials = getDeviceCredentials(server);
         return await api.fetchInterfaceStats(credentials);
@@ -109,7 +114,10 @@ export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat
 export const getTrafficData = async (serverId: string): Promise<TrafficData> => {
     const db = await readDB();
     const server = db.devices.find(s => s.id === serverId);
-    if (!server) return [];
+    if (!server) {
+        console.error(`Server with id ${serverId} not found for getTrafficData.`);
+        return [];
+    }
      try {
         const credentials = getDeviceCredentials(server);
         return await api.fetchTrafficData(credentials);
@@ -122,7 +130,10 @@ export const getTrafficData = async (serverId: string): Promise<TrafficData> => 
 export const getResourceData = async (serverId: string): Promise<ResourceData> => {
     const db = await readDB();
     const server = db.devices.find(s => s.id === serverId);
-    if (!server) return [];
+     if (!server) {
+        console.error(`Server with id ${serverId} not found for getResourceData.`);
+        return [];
+    }
      try {
         const credentials = getDeviceCredentials(server);
         return await api.fetchResourceData(credentials);

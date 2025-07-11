@@ -1,3 +1,18 @@
 {
-  "devices": []
+  "devices": [
+    {
+      "id": "server-1752273035594",
+      "name": "تسيت 1",
+      "ip": "10.22.33.1",
+      "username": "admin",
+      "password": "password",
+      "status": "Offline",
+      "uptime": "N/A",
+      "type": "MikroTik",
+      "port": 7070,
+      "cpuUsage": 0,
+      "memoryUsage": 0,
+      "activePppoe": 0
+    }
+  ]
 }

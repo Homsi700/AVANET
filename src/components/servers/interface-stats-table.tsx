@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -18,29 +18,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { getInterfaceStats } from '@/lib/data';
 import type { InterfaceStat } from '@/lib/types';
-import { Skeleton } from '../ui/skeleton';
 
-export function InterfaceStatsTable({ serverId }: { serverId: string }) {
-  const [stats, setStats] = useState<InterfaceStat[]>([]);
-  const [loading, setLoading] = useState(true);
+export function InterfaceStatsTable({ initialStats }: { initialStats: InterfaceStat[] }) {
+  const [stats, setStats] = useState<InterfaceStat[]>(initialStats);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const interfaceStats = await getInterfaceStats(serverId);
-        setStats(interfaceStats);
-      } catch (error) {
-        console.error("Failed to fetch interface stats:", error);
-        setStats([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [serverId]);
+  // Note: The periodic refresh logic was removed. Data should be passed from a server component.
 
   const getStatusVariant = (status: 'Running' | 'Down'): 'default' | 'destructive' => {
     return status === 'Running' ? 'default' : 'destructive';
@@ -65,13 +48,7 @@ export function InterfaceStatsTable({ serverId }: { serverId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
-                    </TableRow>
-                ))
-            ) : stats.map((stat) => (
+            {stats.map((stat) => (
               <TableRow key={stat.id}>
                 <TableCell className="font-medium">{stat.name}</TableCell>
                 <TableCell>

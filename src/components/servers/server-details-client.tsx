@@ -1,6 +1,6 @@
 'use client';
 
-import type { Server } from '@/lib/types';
+import type { Server, PppoeUser, InterfaceStat, TrafficData, ResourceData } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -14,7 +14,21 @@ import { TrafficChart } from './traffic-chart';
 import { ScrollArea } from '../ui/scroll-area';
 import { ResourceUsageChart } from './resource-usage-chart';
 
-export function ServerDetailsClient({ server }: { server: Server }) {
+type ServerDetailsClientProps = {
+    server: Server;
+    initialPppoeUsers: PppoeUser[];
+    initialInterfaceStats: InterfaceStat[];
+    initialTrafficData: TrafficData;
+    initialResourceData: ResourceData;
+}
+
+export function ServerDetailsClient({ 
+    server, 
+    initialPppoeUsers, 
+    initialInterfaceStats,
+    initialTrafficData,
+    initialResourceData,
+}: ServerDetailsClientProps) {
   return (
     <ScrollArea className="flex-1">
       <main className="p-4 md:p-6">
@@ -65,7 +79,7 @@ export function ServerDetailsClient({ server }: { server: Server }) {
                 <CardTitle>استخدام الموارد</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <ResourceUsageChart serverId={server.id} />
+                <ResourceUsageChart initialData={initialResourceData} />
                 </CardContent>
             </Card>
             <Card>
@@ -73,17 +87,17 @@ export function ServerDetailsClient({ server }: { server: Server }) {
                 <CardTitle>حركة البيانات</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <TrafficChart serverId={server.id} />
+                <TrafficChart initialData={initialTrafficData} />
                 </CardContent>
             </Card>
         </div>
         
         <div className="mt-6 grid grid-cols-1 gap-6">
-            <ActiveConnectionsTable serverId={server.id} serverName={server.name} />
+            <ActiveConnectionsTable serverId={server.id} serverName={server.name} initialUsers={initialPppoeUsers} />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6">
-            <InterfaceStatsTable serverId={server.id} />
+            <InterfaceStatsTable initialStats={initialInterfaceStats} />
         </div>
 
       </main>

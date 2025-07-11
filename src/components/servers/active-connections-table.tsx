@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -20,34 +20,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Search } from 'lucide-react';
-import { getPppoeUsers } from '@/lib/data';
 import type { PppoeUser } from '@/lib/types';
-import { Skeleton } from '../ui/skeleton';
 import { AddPppoeUserDialog } from './add-pppoe-user-dialog';
 
-export function ActiveConnectionsTable({ serverId, serverName }: { serverId: string, serverName: string }) {
-  const [users, setUsers] = useState<PppoeUser[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ActiveConnectionsTable({ serverId, serverName, initialUsers }: { serverId: string, serverName: string, initialUsers: PppoeUser[] }) {
+  const [users, setUsers] = useState<PppoeUser[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddUserDialogOpen, setAddUserDialogOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const pppoeUsers = await getPppoeUsers(serverId);
-        setUsers(pppoeUsers);
-      } catch (error) {
-        console.error("Failed to fetch pppoe users:", error);
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [serverId]);
+  // Note: The periodic refresh logic was removed as it's a common source of client-side fs module errors.
+  // Re-fetching should be handled by navigating or using a manual refresh button that triggers a server action.
 
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -92,13 +74,7 @@ export function ActiveConnectionsTable({ serverId, serverName }: { serverId: str
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell>
-                    </TableRow>
-                ))
-            ) : filteredUsers.length > 0 ? (
+            {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.name}</TableCell>
