@@ -1,4 +1,5 @@
 
+
 export type Device = Server | Dish;
 
 export interface BaseDevice {
@@ -50,6 +51,12 @@ export type TrafficData = {
   time: string;
   upload: number;
   download: number;
+}[];
+
+export type ResourceData = {
+  time: string;
+  cpu: number;
+  memory: number;
 }[];
 
 // --- API Payload Types ---

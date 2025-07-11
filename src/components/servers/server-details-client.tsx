@@ -12,6 +12,7 @@ import { ActiveConnectionsTable } from './active-connections-table';
 import { InterfaceStatsTable } from './interface-stats-table';
 import { TrafficChart } from './traffic-chart';
 import { ScrollArea } from '../ui/scroll-area';
+import { ResourceUsageChart } from './resource-usage-chart';
 
 export function ServerDetailsClient({ server }: { server: Server }) {
   return (
@@ -59,14 +60,22 @@ export function ServerDetailsClient({ server }: { server: Server }) {
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>حركة البيانات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TrafficChart serverId={server.id} />
-            </CardContent>
-          </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>استخدام الموارد</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <ResourceUsageChart serverId={server.id} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                <CardTitle>حركة البيانات</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <TrafficChart serverId={server.id} />
+                </CardContent>
+            </Card>
         </div>
         
         <div className="mt-6 grid grid-cols-1 gap-6">

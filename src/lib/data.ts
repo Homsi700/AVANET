@@ -1,5 +1,6 @@
 
-import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, Device, AddPppoeUserPayload, NewDevicePayload, DeviceCredentials } from './types';
+
+import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, Device, AddPppoeUserPayload, NewDevicePayload, DeviceCredentials, ResourceData } from './types';
 import * as api from './api';
 
 // In-memory store for devices. In a real application, this would be a database.
@@ -110,6 +111,18 @@ export const getTrafficData = async (serverId: string): Promise<TrafficData> => 
         return await api.fetchTrafficData(credentials);
     } catch (error) {
         console.error(`Failed to fetch traffic data for server ${serverId}:`, error);
+        return [];
+    }
+}
+
+export const getResourceData = async (serverId: string): Promise<ResourceData> => {
+    const server = devices.find(s => s.id === serverId);
+    if (!server) return [];
+     try {
+        const credentials = getDeviceCredentials(server);
+        return await api.fetchResourceData(credentials);
+    } catch (error) {
+        console.error(`Failed to fetch resource data for server ${serverId}:`, error);
         return [];
     }
 }

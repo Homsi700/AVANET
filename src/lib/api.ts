@@ -4,7 +4,7 @@
  * You should replace the placeholder mock logic with actual API calls to your devices.
  * For example, use a library like 'node-routeros' for MikroTik or 'axios' for UBNT/Mimosa.
  */
-import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, AddPppoeUserPayload, DeviceCredentials } from './types';
+import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, AddPppoeUserPayload, DeviceCredentials, ResourceData } from './types';
 
 // --- MIKROTIK API FUNCTIONS ---
 
@@ -117,6 +117,29 @@ export const fetchTrafficData = async (credentials: DeviceCredentials): Promise<
                 time: `${i}:00`,
                 upload: Math.floor(Math.random() * 10) + 1,
                 download: Math.floor(Math.random() * 50) + 5,
+            });
+        }
+        return data;
+    }
+    return Promise.resolve(generateData());
+}
+
+/**
+ * Fetches resource usage data from a MikroTik server.
+ * @param credentials - The device credentials.
+ * @returns A promise that resolves with resource usage data.
+ */
+export const fetchResourceData = async (credentials: DeviceCredentials): Promise<ResourceData> => {
+    console.log(`[API] Fetching resource data for: ${credentials.ip}`);
+    // TODO: Implement actual API call to get historical resource data
+    // This is mock data
+    const generateData = () => {
+        const data = [];
+        for (let i = 5; i >= 0; i--) {
+            data.push({
+                time: `${i}:00`,
+                cpu: Math.floor(Math.random() * 80) + 10,
+                memory: Math.floor(Math.random() * 70) + 20,
             });
         }
         return data;
