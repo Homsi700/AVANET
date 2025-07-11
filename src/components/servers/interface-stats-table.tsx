@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -28,9 +29,15 @@ export function InterfaceStatsTable({ serverId }: { serverId: string }) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const interfaceStats = await getInterfaceStats(serverId);
-      setStats(interfaceStats);
-      setLoading(false);
+      try {
+        const interfaceStats = await getInterfaceStats(serverId);
+        setStats(interfaceStats);
+      } catch (error) {
+        console.error("Failed to fetch interface stats:", error);
+        setStats([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [serverId]);

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,9 +14,15 @@ export function TrafficChart({ serverId }: { serverId: string }) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const trafficData = await getTrafficData(serverId);
-      setData(trafficData);
-      setLoading(false);
+      try {
+        const trafficData = await getTrafficData(serverId);
+        setData(trafficData);
+      } catch (error) {
+        console.error("Failed to fetch traffic data:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [serverId]);

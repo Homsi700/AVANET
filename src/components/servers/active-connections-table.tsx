@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,9 +34,15 @@ export function ActiveConnectionsTable({ serverId, serverName }: { serverId: str
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const pppoeUsers = await getPppoeUsers(serverId);
-      setUsers(pppoeUsers);
-      setLoading(false);
+      try {
+        const pppoeUsers = await getPppoeUsers(serverId);
+        setUsers(pppoeUsers);
+      } catch (error) {
+        console.error("Failed to fetch pppoe users:", error);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
     const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds

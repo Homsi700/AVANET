@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,9 +14,15 @@ export function ResourceUsageChart({ serverId }: { serverId: string }) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const resourceData = await getResourceData(serverId);
-      setData(resourceData);
-      setLoading(false);
+      try {
+        const resourceData = await getResourceData(serverId);
+        setData(resourceData);
+      } catch (error) {
+        console.error("Failed to fetch resource data:", error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [serverId]);
