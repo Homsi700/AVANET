@@ -1,6 +1,8 @@
 'use server';
 
 import { predictNetworkIssues, PredictNetworkIssuesOutput } from '@/ai/flows/predict-network-issues';
+import { addDevice } from '@/lib/data';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 const predictionSchema = z.object({
@@ -39,4 +41,67 @@ export async function handlePrediction(prevState: PredictionState, formData: For
       errors: { _form: ['حدث خطأ غير متوقع أثناء معالجة الطلب.'] },
     };
   }
+}
+
+const serverSchema = z.object({
+  type: z.literal('server'),
+  name: z.string().min(1, { message: 'الاسم مطلوب.' }),
+  ip: z.string().ip({ message: 'عنوان IP غير صالح.' }),
+  port: z.coerce.number().optional(),
+  username: z.string().min(1, { message: 'اسم المستخدم مطلوب.' }),
+  password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
+});
+
+const dishSchema = z.object({
+    type: z.literal('dish'),
+    name: z.string().min(1, { message: 'الاسم مطلوب.' }),
+    ip: z.string().ip({ message: 'عنوان IP غير صالح.' }),
+    username: z.string().min(1, { message: 'اسم المستخدم مطلوب.' }),
+    password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
+});
+
+const deviceSchema = z.union([serverSchema, dishSchema]);
+
+export type AddDeviceState = {
+  errors?: {
+    name?: string[];
+    ip?: string[];
+    port?: string[];
+    username?: string[];
+    password?: string[];
+    _form?: string[];
+  };
+  message?: string;
+}
+
+export async function handleAddDevice(prevState: AddDeviceState, formData: FormData): Promise<AddDeviceState> {
+    const deviceType = formData.get('type');
+    const schema = deviceType === 'server' ? serverSchema : dishSchema;
+
+    const validatedFields = schema.safeParse({
+        type: deviceType,
+        name: formData.get('name'),
+        ip: formData.get('ip'),
+        port: formData.get('port'),
+        username: formData.get('username'),
+        password: formData.get('password'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    try {
+        await addDevice(validatedFields.data);
+        revalidatePath('/');
+        revalidatePath('/devices');
+        return { message: `تمت إضافة الجهاز "${validatedFields.data.name}" بنجاح.` };
+    } catch (error) {
+        console.error(error);
+        return {
+            errors: { _form: ['حدث خطأ غير متوقع أثناء إضافة الجهاز.'] },
+        };
+    }
 }

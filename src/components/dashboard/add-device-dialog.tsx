@@ -1,6 +1,8 @@
 
 'use client';
 
+import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,19 +15,50 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { handleAddDevice, AddDeviceState } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 type AddDeviceDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
+const initialState: AddDeviceState = {};
+
+function SubmitButton({ type }: { type: 'server' | 'dish' }) {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+            {pending ? <Loader2 className="animate-spin me-2" /> : null}
+            {type === 'server' ? 'إضافة سيرفر' : 'إضافة طبق'}
+        </Button>
+    )
+}
+
 export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
-  const handleAdd = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    // In a real app, you would handle form submission here
-    console.log('Adding device...');
-    onOpenChange(false);
-  };
+  const { toast } = useToast();
+  const [serverState, serverFormAction] = useFormState(handleAddDevice, initialState);
+  const [dishState, dishFormAction] = useFormState(handleAddDevice, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (serverState.message) {
+      toast({ title: 'نجاح', description: serverState.message, variant: 'default' });
+      onOpenChange(false);
+    }
+     if (dishState.message) {
+      toast({ title: 'نجاح', description: dishState.message, variant: 'default' });
+      onOpenChange(false);
+    }
+  }, [serverState.message, dishState.message, onOpenChange, toast]);
+  
+  useEffect(() => {
+    if (!open) {
+      formRef.current?.reset();
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,74 +75,97 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
             <TabsTrigger value="dish">إضافة طبق</TabsTrigger>
           </TabsList>
           <TabsContent value="server">
-            <form onSubmit={handleAdd}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="server-name" className="text-right">
-                    الاسم
-                  </Label>
-                  <Input id="server-name" defaultValue="MikroTik HQ" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="server-ip" className="text-right">
-                    آي بي السيرفر
-                  </Label>
-                  <Input id="server-ip" defaultValue="192.168.88.1" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="server-port" className="text-right">
-                    المنفذ
-                  </Label>
-                  <Input id="server-port" type="number" defaultValue="8728" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="server-username" className="text-right">
-                    اسم المستخدم
-                  </Label>
-                  <Input id="server-username" defaultValue="admin" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="server-password" className="text-right">
-                    كلمة المرور
-                  </Label>
-                  <Input id="server-password" type="password" className="col-span-3" />
-                </div>
+            <form action={serverFormAction} ref={formRef} className="space-y-4">
+               <input type="hidden" name="type" value="server" />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="server-name" className="text-right">
+                  الاسم
+                </Label>
+                <Input id="server-name" name="name" className="col-span-3" />
               </div>
+               {serverState.errors?.name && <p className="col-span-4 text-sm text-destructive">{serverState.errors.name[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="server-ip" className="text-right">
+                  آي بي السيرفر
+                </Label>
+                <Input id="server-ip" name="ip" className="col-span-3" />
+              </div>
+              {serverState.errors?.ip && <p className="col-span-4 text-sm text-destructive">{serverState.errors.ip[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="server-port" className="text-right">
+                  المنفذ
+                </Label>
+                <Input id="server-port" name="port" type="number" placeholder="8728 (اختياري)" className="col-span-3" />
+              </div>
+              {serverState.errors?.port && <p className="col-span-4 text-sm text-destructive">{serverState.errors.port[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="server-username" className="text-right">
+                  اسم المستخدم
+                </Label>
+                <Input id="server-username" name="username" className="col-span-3" />
+              </div>
+              {serverState.errors?.username && <p className="col-span-4 text-sm text-destructive">{serverState.errors.username[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="server-password" className="text-right">
+                  كلمة المرور
+                </Label>
+                <Input id="server-password" name="password" type="password" className="col-span-3" />
+              </div>
+              {serverState.errors?.password && <p className="col-span-4 text-sm text-destructive">{serverState.errors.password[0]}</p>}
+
+              {serverState.errors?._form && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>خطأ</AlertTitle>
+                    <AlertDescription>{serverState.errors._form[0]}</AlertDescription>
+                </Alert>
+              )}
               <DialogFooter>
-                <Button type="submit">إضافة سيرفر</Button>
+                <SubmitButton type="server" />
               </DialogFooter>
             </form>
           </TabsContent>
           <TabsContent value="dish">
-            <form onSubmit={handleAdd}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="dish-name" className="text-right">
-                    الاسم
-                  </Label>
-                  <Input id="dish-name" defaultValue="UBNT Link 1" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="dish-ip" className="text-right">
-                    عنوان IP
-                  </Label>
-                  <Input id="dish-ip" defaultValue="10.10.0.2" className="col-span-3" />
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="dish-username" className="text-right">
-                    اسم المستخدم
-                  </Label>
-                  <Input id="dish-username" defaultValue="ubnt" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="dish-password" className="text-right">
-                    كلمة المرور
-                  </Label>
-                  <Input id="dish-password" type="password" className="col-span-3" />
-                </div>
+            <form action={dishFormAction} className="space-y-4">
+               <input type="hidden" name="type" value="dish" />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="dish-name" className="text-right">
+                  الاسم
+                </Label>
+                <Input id="dish-name" name="name" className="col-span-3" />
               </div>
+               {dishState.errors?.name && <p className="col-span-4 text-sm text-destructive">{dishState.errors.name[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="dish-ip" className="text-right">
+                  عنوان IP
+                </Label>
+                <Input id="dish-ip" name="ip" className="col-span-3" />
+              </div>
+               {dishState.errors?.ip && <p className="col-span-4 text-sm text-destructive">{dishState.errors.ip[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="dish-username" className="text-right">
+                  اسم المستخدم
+                </Label>
+                <Input id="dish-username" name="username" className="col-span-3" />
+              </div>
+              {dishState.errors?.username && <p className="col-span-4 text-sm text-destructive">{dishState.errors.username[0]}</p>}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="dish-password" className="text-right">
+                  كلمة المرور
+                </Label>
+                <Input id="dish-password" name="password" type="password" className="col-span-3" />
+              </div>
+              {dishState.errors?.password && <p className="col-span-4 text-sm text-destructive">{dishState.errors.password[0]}</p>}
+              
+              {dishState.errors?._form && (
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>خطأ</AlertTitle>
+                    <AlertDescription>{dishState.errors._form[0]}</AlertDescription>
+                </Alert>
+              )}
               <DialogFooter>
-                <Button type="submit">إضافة طبق</Button>
+                <SubmitButton type="dish" />
               </DialogFooter>
             </form>
           </TabsContent>
