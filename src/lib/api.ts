@@ -21,10 +21,13 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
         const results = await conn.write(command, params);
         return results;
     } catch (err: any) {
+        if (err.code === 'ETIMEDOUT' || (err instanceof Error && err.message.includes('Timed out'))) {
+             throw new Error(`Connection timed out to ${credentials.ip}:${credentials.port || 8728}. Please check network connectivity, firewall rules, and ensure the API service is enabled on the MikroTik device.`);
+        }
         if (err instanceof RosException) {
             throw new Error(`MikroTik API Error: ${err.message}`);
         }
-        throw new Error(`Connection failed to ${credentials.ip}:${credentials.port || 8728}. Check network, firewall, and credentials.`);
+        throw new Error(`Connection failed to ${credentials.ip}:${credentials.port || 8728}. Check credentials and that the API service is not restricted.`);
     } finally {
         if (conn.connected) {
             await conn.close();
