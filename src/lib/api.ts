@@ -78,7 +78,11 @@ export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promis
 export const fetchPppoeUsers = async (credentials: DeviceCredentials): Promise<PppoeUser[]> => {
     console.log(`[API] Fetching PPPoE users for: ${credentials.ip}`);
     // TODO: Implement actual API call to get /ppp/active
-    return Promise.resolve([]); // Return empty for now
+    return Promise.resolve([
+        // Mock data
+        { id: '1', name: 'user1', service: 'pppoe', ipAddress: '10.0.0.1', uptime: '1d 2h', upload: '1.2 Mbps', download: '5.5 Mbps' },
+        { id: '2', name: 'user2', service: 'pppoe', ipAddress: '10.0.0.2', uptime: '3h 12m', upload: '0.8 Mbps', download: '4.1 Mbps' },
+    ]);
 }
 
 /**
@@ -89,7 +93,12 @@ export const fetchPppoeUsers = async (credentials: DeviceCredentials): Promise<P
 export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promise<InterfaceStat[]> => {
     console.log(`[API] Fetching interface stats for: ${credentials.ip}`);
     // TODO: Implement actual API call to get /interface stats
-    return Promise.resolve([]); // Return empty for now
+    return Promise.resolve([
+        // Mock data
+        { id: '1', name: 'ether1', status: 'Running', rxRate: '10.5 Mbps', txRate: '2.3 Mbps' },
+        { id: '2', name: 'ether2', status: 'Down', rxRate: '0 Mbps', txRate: '0 Mbps' },
+        { id: '3', name: 'wlan1', status: 'Running', rxRate: '50.1 Mbps', txRate: '15.2 Mbps' },
+    ]);
 }
 
 /**
@@ -100,7 +109,19 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
 export const fetchTrafficData = async (credentials: DeviceCredentials): Promise<TrafficData> => {
     console.log(`[API] Fetching traffic data for: ${credentials.ip}`);
     // TODO: Implement actual API call to get traffic data
-    return Promise.resolve([]); // Return empty for now
+    // This is mock data
+    const generateData = () => {
+        const data = [];
+        for (let i = 5; i >= 0; i--) {
+            data.push({
+                time: `${i}:00`,
+                upload: Math.floor(Math.random() * 10) + 1,
+                download: Math.floor(Math.random() * 50) + 5,
+            });
+        }
+        return data;
+    }
+    return Promise.resolve(generateData());
 }
 
 
