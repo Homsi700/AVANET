@@ -8,31 +8,47 @@ import { Transform } from 'stream';
 
 // Helper function to connect, execute, and close the connection to a MikroTik device.
 async function executeMikroTikCommand(credentials: DeviceCredentials, command: string, params: any[] = []): Promise<any[]> {
-    const conn = new RouterOSAPI({
-        host: credentials.ip,
-        user: credentials.username,
-        password: credentials.password,
-        port: credentials.port || 8728,
-        timeout: 5, // 5 second timeout
-    });
+    const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
+    let lastError: Error | null = null;
 
-    try {
-        await conn.connect();
-        const results = await conn.write(command, params);
-        return results;
-    } catch (err: any) {
-        if (err.code === 'ETIMEDOUT' || (err instanceof Error && err.message.includes('Timed out'))) {
-             throw new Error(`Connection timed out to ${credentials.ip}:${credentials.port || 8728}. Please check network connectivity, firewall rules, and ensure the API service is enabled on the MikroTik device.`);
-        }
-        if (err instanceof RosException) {
-            throw new Error(`MikroTik API Error: ${err.message}`);
-        }
-        throw new Error(`Connection failed to ${credentials.ip}:${credentials.port || 8728}. Check credentials and that the API service is not restricted.`);
-    } finally {
-        if (conn.connected) {
-            await conn.close();
+    for (const port of portsToTry) {
+        const conn = new RouterOSAPI({
+            host: credentials.ip,
+            user: credentials.username,
+            password: credentials.password,
+            port: port,
+            timeout: 5, // 5 second timeout
+        });
+
+        try {
+            await conn.connect();
+            const results = await conn.write(command, params);
+            // If connection and command are successful, close and return results
+            if (conn.connected) {
+                await conn.close();
+            }
+            return results;
+        } catch (err: any) {
+            lastError = err;
+            console.log(`[API] Connection to ${credentials.ip}:${port} failed. Trying next port if available.`);
+            if (conn.connected) {
+                await conn.close();
+            }
         }
     }
+
+    // If all ports failed, throw the last captured error.
+    const finalPort = credentials.port || '8728 & 7070';
+    if (lastError) {
+         if (lastError.code === 'ETIMEDOUT' || (lastError instanceof Error && lastError.message.includes('Timed out'))) {
+             throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity, firewall rules, and ensure the API service is enabled on the MikroTik device.`);
+        }
+        if (lastError instanceof RosException) {
+            throw new Error(`MikroTik API Error: ${lastError.message}`);
+        }
+    }
+    
+    throw new Error(`Connection failed to ${credentials.ip}:${finalPort}. Check credentials and that the API service is not restricted.`);
 }
 
 // --- MIKROTIK API FUNCTIONS ---
@@ -44,7 +60,7 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
  * @throws An error if the connection fails.
  */
 export const testMikroTikConnection = async (credentials: DeviceCredentials): Promise<void> => {
-    console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port || 8728}`);
+    console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port || 'default ports'}`);
     // A simple command to check the connection.
     await executeMikroTikCommand(credentials, '/system/resource/print');
 }
@@ -122,17 +138,31 @@ const formatRate = (bits: number): string => {
 export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promise<InterfaceStat[]> => {
     console.log(`[API] Fetching interface stats for: ${credentials.ip}`);
     
-    const conn = new RouterOSAPI({
-        host: credentials.ip,
-        user: credentials.username,
-        password: credentials.password,
-        port: credentials.port || 8728,
-        timeout: 10,
-    });
+    const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
+    let conn: RouterOSAPI | null = null;
+
+    for (const port of portsToTry) {
+        try {
+            conn = new RouterOSAPI({
+                host: credentials.ip,
+                user: credentials.username,
+                password: credentials.password,
+                port: port,
+                timeout: 10,
+            });
+            await conn.connect();
+            break; // connection successful
+        } catch (error) {
+            conn = null;
+            console.log(`[API] Interface stat connection to ${credentials.ip}:${port} failed.`);
+        }
+    }
+    
+    if (!conn) {
+        throw new Error(`Could not connect to ${credentials.ip} on ports 8728 or 7070.`);
+    }
 
     try {
-        await conn.connect();
-        
         // Get initial interface list
         const interfaces = await conn.write('/interface/print');
         const interfaceNames = interfaces.map((i: any) => i.name).join(',');
@@ -183,7 +213,7 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
         console.error(`Error fetching interface stats: ${err.message}`);
         throw err;
     } finally {
-        if (conn.connected) {
+        if (conn && conn.connected) {
             await conn.close();
         }
     }
