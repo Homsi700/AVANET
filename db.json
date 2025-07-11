@@ -1,32 +1,3 @@
 {
-  "devices": [
-    {
-      "id": "server-1752273035594",
-      "name": "تسيت 1",
-      "ip": "10.22.33.1",
-      "username": "admin",
-      "password": "password",
-      "status": "Offline",
-      "uptime": "N/A",
-      "type": "MikroTik",
-      "port": 7070,
-      "cpuUsage": 0,
-      "memoryUsage": 0,
-      "activePppoe": 0
-    },
-    {
-      "id": "dish-1752273811305",
-      "name": "تسيت 2",
-      "ip": "10.22.33.2",
-      "username": "111",
-      "password": "123456",
-      "status": "Offline",
-      "uptime": "N/A",
-      "type": "UBNT",
-      "signalStrength": 0,
-      "noiseFloor": 0,
-      "txRate": 0,
-      "rxRate": 0
-    }
-  ]
+  "devices": []
 }

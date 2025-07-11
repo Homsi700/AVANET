@@ -2,7 +2,8 @@
 'use server';
 
 import { predictNetworkIssues, PredictNetworkIssuesOutput } from '@/ai/flows/predict-network-issues';
-import { addDevice, addPppoeUser, deleteDeviceById } from '@/lib/data';
+import { addDevice, addPppoeUser, deleteDeviceById, updateDeviceById } from '@/lib/data';
+import type { Device } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -45,7 +46,8 @@ export async function handlePrediction(prevState: PredictionState, formData: For
 }
 
 const serverSchema = z.object({
-  type: z.literal('server'),
+  id: z.string().optional(),
+  type: z.literal('server').or(z.literal('MikroTik')),
   name: z.string().min(1, { message: 'الاسم مطلوب.' }),
   ip: z.string().ip({ message: 'عنوان IP غير صالح.' }),
   port: z.coerce.number().optional(),
@@ -54,14 +56,15 @@ const serverSchema = z.object({
 });
 
 const dishSchema = z.object({
-    type: z.literal('dish'),
+    id: z.string().optional(),
+    type: z.literal('dish').or(z.literal('UBNT')).or(z.literal('Mimosa')),
     name: z.string().min(1, { message: 'الاسم مطلوب.' }),
     ip: z.string().ip({ message: 'عنوان IP غير صالح.' }),
     username: z.string().min(1, { message: 'اسم المستخدم مطلوب.' }),
     password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
 });
 
-export type AddDeviceState = {
+export type DeviceFormState = {
     errors?: {
         name?: string[];
         ip?: string[];
@@ -73,12 +76,12 @@ export type AddDeviceState = {
     message?: string;
 };
 
-export async function handleAddDevice(prevState: any, formData: FormData): Promise<AddDeviceState> {
-    const deviceType = formData.get('type');
+export async function handleAddDevice(prevState: any, formData: FormData): Promise<DeviceFormState> {
+    const deviceType = formData.get('type') === 'server' ? 'server' : 'dish';
     const schema = deviceType === 'server' ? serverSchema : dishSchema;
-
+    
     const validatedFields = schema.safeParse(Object.fromEntries(formData.entries()));
-
+    
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
@@ -97,6 +100,40 @@ export async function handleAddDevice(prevState: any, formData: FormData): Promi
         };
     }
 }
+
+
+export async function handleUpdateDevice(prevState: any, formData: FormData): Promise<DeviceFormState> {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const deviceType = rawFormData.type === 'MikroTik' ? 'server' : 'dish';
+    const schema = deviceType === 'server' ? serverSchema : dishSchema;
+    
+    const validatedFields = schema.safeParse(rawFormData);
+    
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+    
+    const { id, ...deviceData } = validatedFields.data;
+
+    if (!id) {
+         return { errors: { _form: ['معرف الجهاز مفقود.'] } };
+    }
+
+    try {
+        await updateDeviceById(id, deviceData as Partial<Device>);
+        revalidatePath('/');
+        revalidatePath('/devices');
+        return { message: `تم تحديث الجهاز "${validatedFields.data.name}" بنجاح.` };
+    } catch (error: any) {
+        console.error(error);
+        return {
+            errors: { _form: [error.message || 'حدث خطأ غير متوقع أثناء تحديث الجهاز.'] },
+        };
+    }
+}
+
 
 const pppoeUserSchema = z.object({
     serverId: z.string(),

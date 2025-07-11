@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { handleDeleteDevice } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { EditDeviceDialog } from './edit-device-dialog';
 
 const getStatusVariant = (status: 'Online' | 'Offline'): 'default' | 'destructive' => {
   return status === 'Online' ? 'default' : 'destructive';
@@ -40,9 +41,15 @@ const getStatusVariant = (status: 'Online' | 'Offline'): 'default' | 'destructiv
 
 export function DevicesTable({ devices }: { devices: Device[] }) {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  const handleEditClick = (device: Device) => {
+    setSelectedDevice(device);
+    setEditDialogOpen(true);
+  };
 
   const handleDeleteClick = (device: Device) => {
     setSelectedDevice(device);
@@ -102,7 +109,7 @@ export function DevicesTable({ devices }: { devices: Device[] }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem disabled>
+                      <DropdownMenuItem onClick={() => handleEditClick(device)}>
                         <Pencil className="me-2" />
                         <span>تعديل</span>
                       </DropdownMenuItem>
@@ -143,6 +150,15 @@ export function DevicesTable({ devices }: { devices: Device[] }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedDevice && (
+        <EditDeviceDialog 
+            key={selectedDevice.id} // Re-mount the component when device changes
+            device={selectedDevice} 
+            open={isEditDialogOpen} 
+            onOpenChange={setEditDialogOpen} 
+        />
+      )}
     </>
   );
 }

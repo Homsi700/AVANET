@@ -207,6 +207,27 @@ export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => 
     console.log("Device added to db.json:", newDevice);
 }
 
+export const updateDeviceById = async (id: string, deviceData: Partial<Device>): Promise<void> => {
+    const db = await readDB();
+    const deviceIndex = db.devices.findIndex(device => device.id === id);
+    if (deviceIndex === -1) {
+        throw new Error('لم يتم العثور على الجهاز لتحديثه.');
+    }
+
+    // Merge old data with new data
+    const updatedDevice = { ...db.devices[deviceIndex], ...deviceData };
+
+    // If password is an empty string, it means user didn't want to change it.
+    // So we keep the old one.
+    if (deviceData.password === '') {
+        updatedDevice.password = db.devices[deviceIndex].password;
+    }
+
+    db.devices[deviceIndex] = updatedDevice;
+    await writeDB(db);
+    console.log(`Device with id ${id} updated in db.json.`);
+};
+
 export const addPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
     const db = await readDB();
     const server = db.devices.find(d => d.id === payload.serverId);
