@@ -62,7 +62,21 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverName }: AddPppoeU
                 <Label htmlFor="service" className="text-right">
                 الخدمة
                 </Label>
-                <Select>
+                <Select name="service">
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="اختر الخدمة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="pppoe">pppoe</SelectItem>
+                        <SelectItem value="hotspot">hotspot</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="profile" className="text-right">
+                البروفايل
+                </Label>
+                <Select name="profile">
                     <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="اختر بروفايل" />
                     </SelectTrigger>
