@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BrainCircuit, LayoutDashboard, Network } from 'lucide-react';
+import { BrainCircuit, LayoutDashboard, Network, Settings } from 'lucide-react';
 import {
   Sidebar,
   SidebarHeader,
@@ -20,6 +20,11 @@ const menuItems = [
     href: '/',
     label: 'لوحة التحكم',
     icon: LayoutDashboard,
+  },
+  {
+    href: '/devices',
+    label: 'إدارة الأجهزة',
+    icon: Settings,
   },
   {
     href: '/predict',
