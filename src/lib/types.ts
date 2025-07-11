@@ -1,3 +1,4 @@
+
 export type Device = Server | Dish;
 
 export interface BaseDevice {
@@ -6,6 +7,9 @@ export interface BaseDevice {
   ip: string;
   status: 'Online' | 'Offline';
   uptime: string;
+  // Store credentials here for API calls. In a real app, this should be handled much more securely.
+  username: string;
+  password: string;
 }
 
 export interface Server extends BaseDevice {
@@ -47,3 +51,27 @@ export type TrafficData = {
   upload: number;
   download: number;
 }[];
+
+// --- API Payload Types ---
+
+// Credentials needed to connect to any device
+export type DeviceCredentials = {
+    ip: string;
+    username: string;
+    password: string;
+    port?: number;
+}
+
+// Data from the "Add Device" form
+export type NewDevicePayload = 
+    | { type: 'server'; name: string; ip: string; port?: number; username: string; password: string; }
+    | { type: 'dish'; name: string; ip: string; username: string; password: string; }
+
+// Data for adding a PPPoE user, combined with device credentials for the API call
+export type AddPppoeUserPayload = {
+    serverId: string;
+    username: string;
+    password: string;
+    service: string;
+    profile: string;
+} & DeviceCredentials;

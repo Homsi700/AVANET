@@ -1,3 +1,4 @@
+
 'use server';
 
 import { predictNetworkIssues, PredictNetworkIssuesOutput } from '@/ai/flows/predict-network-issues';
@@ -60,7 +61,19 @@ const dishSchema = z.object({
     password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
 });
 
-export async function handleAddDevice(prevState: any, formData: FormData): Promise<{ errors?: any; message?: string; }> {
+export type AddDeviceState = {
+    errors?: {
+        name?: string[];
+        ip?: string[];
+        port?: string[];
+        username?: string[];
+        password?: string[];
+        _form?: string[];
+    };
+    message?: string;
+};
+
+export async function handleAddDevice(prevState: any, formData: FormData): Promise<AddDeviceState> {
     const deviceType = formData.get('type');
     const schema = deviceType === 'server' ? serverSchema : dishSchema;
 

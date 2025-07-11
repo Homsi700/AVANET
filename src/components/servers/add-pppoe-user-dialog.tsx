@@ -62,8 +62,11 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
     useEffect(() => {
         if (!open) {
           formRef.current?.reset();
+          // Reset form state manually
+          const emptyState = {};
+          Object.assign(state, emptyState);
         }
-    }, [open]);
+    }, [open, state]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +86,7 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                     </Label>
                     <Input id="username" name="username" className="col-span-3" />
                 </div>
-                {state?.errors?.username && <p className="col-span-4 text-sm text-destructive">{state.errors.username[0]}</p>}
+                {state?.errors?.username && <p className="col-span-4 text-sm text-destructive text-right">{state.errors.username[0]}</p>}
 
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="password" className="text-right">
@@ -91,7 +94,7 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                     </Label>
                     <Input id="password" name="password" type="password" className="col-span-3" />
                 </div>
-                {state?.errors?.password && <p className="col-span-4 text-sm text-destructive">{state.errors.password[0]}</p>}
+                {state?.errors?.password && <p className="col-span-4 text-sm text-destructive text-right">{state.errors.password[0]}</p>}
 
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="service" className="text-right">
@@ -107,7 +110,7 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                         </SelectContent>
                     </Select>
                 </div>
-                 {state?.errors?.service && <p className="col-span-4 text-sm text-destructive">{state.errors.service[0]}</p>}
+                 {state?.errors?.service && <p className="col-span-4 text-sm text-destructive text-right">{state.errors.service[0]}</p>}
 
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="profile" className="text-right">
@@ -124,7 +127,7 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                         </SelectContent>
                     </Select>
                 </div>
-                {state?.errors?.profile && <p className="col-span-4 text-sm text-destructive">{state.errors.profile[0]}</p>}
+                {state?.errors?.profile && <p className="col-span-4 text-sm text-destructive text-right">{state.errors.profile[0]}</p>}
             </div>
 
              {state?.errors?._form && (
@@ -136,6 +139,7 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
               )}
 
             <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>إلغاء</Button>
                 <SubmitButton />
             </DialogFooter>
         </form>

@@ -1,3 +1,4 @@
+
 /**
  * @file This file contains the functions that interact with the network devices' APIs.
  * You should replace the placeholder mock logic with actual API calls to your devices.
