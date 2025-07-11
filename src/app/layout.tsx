@@ -5,7 +5,7 @@ import { AppSidebar } from '@/components/layout/app-sidebar';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Nabrati',
+  title: 'AVA NET',
   description: 'منصة متكاملة لإدارة ومراقبة الشبكات',
 };
 

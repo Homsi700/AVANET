@@ -45,7 +45,7 @@ export function AppSidebar() {
             </Link>
           </Button>
           <h1 className="text-lg font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            Nabrati
+            AVA NET
           </h1>
         </div>
       </SidebarHeader>
@@ -69,7 +69,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="group-data-[collapsible=icon]:hidden">
         <div className="text-center text-xs text-sidebar-foreground/50">
-          &copy; {new Date().getFullYear()} Nabrati.
+          &copy; {new Date().getFullYear()} AVA NET.
         </div>
       </SidebarFooter>
     </Sidebar>
