@@ -1,3 +1,4 @@
+
 import { notFound } from 'next/navigation';
 import {
   getServerById,
@@ -12,11 +13,11 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-export default async function ServerDetailPage({
-  params,
-}: {
+type ServerDetailPageProps = {
   params: { id: string };
-}) {
+};
+
+export default async function ServerDetailPage({ params }: ServerDetailPageProps) {
   const { id } = params;
   const server = await getServerById(id);
 
