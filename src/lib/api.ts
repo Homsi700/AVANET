@@ -1,10 +1,36 @@
-
 /**
  * @file This file contains the functions that interact with the network devices' APIs.
- * You should replace the placeholder mock logic with actual API calls to your devices.
- * For example, use a library like 'node-routeros' for MikroTik or 'axios' for UBNT/Mimosa.
+ * It uses the 'node-routeros' library to communicate with MikroTik devices.
  */
 import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, AddPppoeUserPayload, DeviceCredentials, ResourceData } from './types';
+import { RouterOSAPI, RosException } from 'node-routeros';
+import { Transform } from 'stream';
+
+// Helper function to connect, execute, and close the connection to a MikroTik device.
+async function executeMikroTikCommand(credentials: DeviceCredentials, command: string, params: any[] = []): Promise<any[]> {
+    const conn = new RouterOSAPI({
+        host: credentials.ip,
+        user: credentials.username,
+        password: credentials.password,
+        port: credentials.port || 8728,
+        timeout: 5, // 5 second timeout
+    });
+
+    try {
+        await conn.connect();
+        const results = await conn.write(command, params);
+        return results;
+    } catch (err: any) {
+        if (err instanceof RosException) {
+            throw new Error(`MikroTik API Error: ${err.message}`);
+        }
+        throw new Error(`Connection failed to ${credentials.ip}:${credentials.port || 8728}. Check network, firewall, and credentials.`);
+    } finally {
+        if (conn.connected) {
+            await conn.close();
+        }
+    }
+}
 
 // --- MIKROTIK API FUNCTIONS ---
 
@@ -15,13 +41,9 @@ import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, AddPppoeUserP
  * @throws An error if the connection fails.
  */
 export const testMikroTikConnection = async (credentials: DeviceCredentials): Promise<void> => {
-  console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port || 8728}`);
-  // TODO: Implement actual connection test logic here.
-  // Example:
-  // const rosApi = new RouterOSAPI({ host: credentials.ip, user: credentials.username, password: credentials.password, port: credentials.port });
-  // await rosApi.connect();
-  // await rosApi.close();
-  return new Promise(resolve => setTimeout(resolve, 300));
+    console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port || 8728}`);
+    // A simple command to check the connection.
+    await executeMikroTikCommand(credentials, '/system/resource/print');
 }
 
 /**
@@ -31,43 +53,36 @@ export const testMikroTikConnection = async (credentials: DeviceCredentials): Pr
  */
 export const fetchMikroTikStatus = async (credentials: DeviceCredentials): Promise<Partial<Server>> => {
     console.log(`[API] Fetching status for MikroTik: ${credentials.ip}`);
-    // TODO: Implement actual API call to get system resources.
-    // This is placeholder data.
-    return new Promise(resolve => setTimeout(() => resolve({
+    const [resource, pppoe] = await Promise.all([
+        executeMikroTikCommand(credentials, '/system/resource/print'),
+        executeMikroTikCommand(credentials, '/ppp/active/print', ['?service=pppoe', 'count-only=']),
+    ]);
+    
+    const resourceData = resource[0];
+    const pppoeCount = pppoe[0]?.ret || 0;
+
+    return {
         status: 'Online',
-        cpuUsage: Math.floor(Math.random() * 80) + 10,
-        memoryUsage: Math.floor(Math.random() * 70) + 20,
-        uptime: `${Math.floor(Math.random() * 10)}d ${Math.floor(Math.random() * 23)}h`,
-        activePppoe: Math.floor(Math.random() * 100),
-    }), 200));
+        cpuUsage: resourceData['cpu-load'],
+        memoryUsage: Math.round(((resourceData['total-memory'] - resourceData['free-memory']) / resourceData['total-memory']) * 100),
+        uptime: resourceData.uptime,
+        activePppoe: parseInt(pppoeCount, 10),
+    };
 }
 
 /**
  * Adds a new PPPoE user to a MikroTik server.
- * @param payload - The PPPoE user details.
+ * @param payload - The PPPoE user details, including credentials.
  * @throws An error if adding the user fails.
  */
 export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
     console.log(`[API] Adding PPPoE user '${payload.username}' to server ${payload.serverId}`);
-    // TODO: Implement the actual API call to add a pppoe secret.
-    // Example using a library like 'node-routeros':
-    // 1. Find the server's credentials using payload.serverId from your database/store.
-    // 2. Connect to the server.
-    // 3. Execute the command:
-    //    rosApi.write('/ppp/secret/add', {
-    //      'name': payload.username,
-    //      'password': payload.password,
-    //      'service': payload.service,
-    //      'profile': payload.profile,
-    //    });
-    // 4. Handle success or error.
-    
-    // Simulate a potential error
-    if (payload.username === 'fail') {
-        throw new Error("اسم المستخدم 'fail' غير مسموح به.");
-    }
-    
-    return new Promise(resolve => setTimeout(resolve, 500));
+    await executeMikroTikCommand(payload, '/ppp/secret/add', [
+        `=name=${payload.username}`,
+        `=password=${payload.password}`,
+        `=service=${payload.service}`,
+        `=profile=${payload.profile}`,
+    ]);
 }
 
 /**
@@ -77,13 +92,24 @@ export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promis
  */
 export const fetchPppoeUsers = async (credentials: DeviceCredentials): Promise<PppoeUser[]> => {
     console.log(`[API] Fetching PPPoE users for: ${credentials.ip}`);
-    // TODO: Implement actual API call to get /ppp/active
-    return Promise.resolve([
-        // Mock data
-        { id: '1', name: 'user1', service: 'pppoe', ipAddress: '10.0.0.1', uptime: '1d 2h', upload: '1.2 Mbps', download: '5.5 Mbps' },
-        { id: '2', name: 'user2', service: 'pppoe', ipAddress: '10.0.0.2', uptime: '3h 12m', upload: '0.8 Mbps', download: '4.1 Mbps' },
-    ]);
+    const results = await executeMikroTikCommand(credentials, '/ppp/active/print');
+    return results.map((user: any) => ({
+        id: user['.id'],
+        name: user.name,
+        service: user.service,
+        ipAddress: user.address,
+        uptime: user.uptime,
+        upload: 'N/A', // These values are not directly available here
+        download: 'N/A', // Needs traffic monitoring
+    }));
 }
+
+// A helper to format bytes into a readable string
+const formatRate = (bits: number): string => {
+    if (bits < 1000) return `${bits} bps`;
+    if (bits < 1000000) return `${(bits / 1000).toFixed(1)} Kbps`;
+    return `${(bits / 1000000).toFixed(1)} Mbps`;
+};
 
 /**
  * Fetches interface statistics from a MikroTik server.
@@ -92,14 +118,74 @@ export const fetchPppoeUsers = async (credentials: DeviceCredentials): Promise<P
  */
 export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promise<InterfaceStat[]> => {
     console.log(`[API] Fetching interface stats for: ${credentials.ip}`);
-    // TODO: Implement actual API call to get /interface stats
-    return Promise.resolve([
-        // Mock data
-        { id: '1', name: 'ether1', status: 'Running', rxRate: '10.5 Mbps', txRate: '2.3 Mbps' },
-        { id: '2', name: 'ether2', status: 'Down', rxRate: '0 Mbps', txRate: '0 Mbps' },
-        { id: '3', name: 'wlan1', status: 'Running', rxRate: '50.1 Mbps', txRate: '15.2 Mbps' },
-    ]);
+    
+    const conn = new RouterOSAPI({
+        host: credentials.ip,
+        user: credentials.username,
+        password: credentials.password,
+        port: credentials.port || 8728,
+        timeout: 10,
+    });
+
+    try {
+        await conn.connect();
+        
+        // Get initial interface list
+        const interfaces = await conn.write('/interface/print');
+        const interfaceNames = interfaces.map((i: any) => i.name).join(',');
+
+        // Create a stream to monitor traffic
+        const stream = conn.stream(['/interface/monitor-traffic', `=interface=${interfaceNames}`, '=once=']);
+        
+        const data: any[] = await new Promise((resolve, reject) => {
+            const collectedData: any[] = [];
+            const dataTimeout = setTimeout(() => {
+                stream.close();
+                reject(new Error("Timeout waiting for interface data from stream."));
+            }, 5000); // 5 second timeout for stream data
+
+            stream.on('data', (chunk) => {
+                collectedData.push(chunk);
+                if (collectedData.length >= interfaces.length) {
+                   clearTimeout(dataTimeout);
+                   stream.close();
+                   resolve(collectedData);
+                }
+            });
+            stream.on('error', (err) => {
+                 clearTimeout(dataTimeout);
+                 reject(err);
+            });
+            stream.on('end', () => {
+                 clearTimeout(dataTimeout);
+                 resolve(collectedData);
+            });
+        });
+
+        const statsMap = new Map<string, any>();
+        data.forEach(stat => statsMap.set(stat.name, stat));
+        
+        return interfaces.map((iface: any) => {
+            const traffic = statsMap.get(iface.name);
+            return {
+                id: iface['.id'],
+                name: iface.name,
+                status: iface.running ? 'Running' : 'Down',
+                rxRate: traffic ? formatRate(traffic['rx-bits-per-second']) : '0 bps',
+                txRate: traffic ? formatRate(traffic['tx-bits-per-second']) : '0 bps',
+            };
+        });
+
+    } catch (err: any) {
+        console.error(`Error fetching interface stats: ${err.message}`);
+        throw err;
+    } finally {
+        if (conn.connected) {
+            await conn.close();
+        }
+    }
 }
+
 
 /**
  * Fetches traffic data from a MikroTik server.
@@ -108,8 +194,9 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
  */
 export const fetchTrafficData = async (credentials: DeviceCredentials): Promise<TrafficData> => {
     console.log(`[API] Fetching traffic data for: ${credentials.ip}`);
-    // TODO: Implement actual API call to get traffic data
-    // This is mock data
+    // This is more complex and requires background monitoring.
+    // For now, returning mock data. A real implementation would involve
+    // storing historical data or using a monitoring tool.
     const generateData = () => {
         const data = [];
         for (let i = 5; i >= 0; i--) {
@@ -131,8 +218,8 @@ export const fetchTrafficData = async (credentials: DeviceCredentials): Promise<
  */
 export const fetchResourceData = async (credentials: DeviceCredentials): Promise<ResourceData> => {
     console.log(`[API] Fetching resource data for: ${credentials.ip}`);
-    // TODO: Implement actual API call to get historical resource data
-    // This is mock data
+    // This is also complex for real-time history.
+    // Returning mock data for the chart.
     const generateData = () => {
         const data = [];
         for (let i = 5; i >= 0; i--) {
@@ -148,7 +235,7 @@ export const fetchResourceData = async (credentials: DeviceCredentials): Promise
 }
 
 
-// --- UBNT/MIMOSA API FUNCTIONS ---
+// --- UBNT/MIMOSA API FUNCTIONS (PLACEHOLDERS) ---
 
 /**
  * Tests the connection to a Dish device.
@@ -159,9 +246,6 @@ export const fetchResourceData = async (credentials: DeviceCredentials): Promise
 export const testDishConnection = async (credentials: DeviceCredentials): Promise<void> => {
   console.log(`[API] Testing connection to Dish: ${credentials.ip}`);
   // TODO: Implement actual connection test logic here (e.g., using axios).
-  // 1. Call the login endpoint.
-  // 2. If successful, store the session cookie/token.
-  // 3. If not, throw an error.
   return new Promise(resolve => setTimeout(resolve, 300));
 }
 
