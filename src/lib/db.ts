@@ -4,9 +4,7 @@ import path from 'path';
 import type { Device } from './types';
 
 // Resolve the path to the db.json file.
-// Using __dirname ensures the path is correct whether running in dev or prod.
-// In Next.js, we might need a more robust way to locate the project root if __dirname behaves unexpectedly.
-// For now, let's assume it's in the root of the project.
+// process.cwd() gives the root of the project.
 const dbPath = path.resolve(process.cwd(), 'db.json');
 
 type Database = {
