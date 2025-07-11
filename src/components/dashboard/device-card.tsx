@@ -136,6 +136,7 @@ export function DeviceCard({ device }: { device: Device }) {
           open={isAddUserDialogOpen}
           onOpenChange={setAddUserDialogOpen}
           serverName={device.name}
+          serverId={device.id}
         />
       )}
     </>

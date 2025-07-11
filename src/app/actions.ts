@@ -1,7 +1,7 @@
 'use server';
 
 import { predictNetworkIssues, PredictNetworkIssuesOutput } from '@/ai/flows/predict-network-issues';
-import { addDevice } from '@/lib/data';
+import { addDevice, addPppoeUser } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -60,32 +60,11 @@ const dishSchema = z.object({
     password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
 });
 
-const deviceSchema = z.union([serverSchema, dishSchema]);
-
-export type AddDeviceState = {
-  errors?: {
-    name?: string[];
-    ip?: string[];
-    port?: string[];
-    username?: string[];
-    password?: string[];
-    _form?: string[];
-  };
-  message?: string;
-}
-
-export async function handleAddDevice(prevState: AddDeviceState, formData: FormData): Promise<AddDeviceState> {
+export async function handleAddDevice(prevState: any, formData: FormData): Promise<{ errors?: any; message?: string; }> {
     const deviceType = formData.get('type');
     const schema = deviceType === 'server' ? serverSchema : dishSchema;
 
-    const validatedFields = schema.safeParse({
-        type: deviceType,
-        name: formData.get('name'),
-        ip: formData.get('ip'),
-        port: formData.get('port'),
-        username: formData.get('username'),
-        password: formData.get('password'),
-    });
+    const validatedFields = schema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {
         return {
@@ -94,14 +73,44 @@ export async function handleAddDevice(prevState: AddDeviceState, formData: FormD
     }
 
     try {
-        await addDevice(validatedFields.data);
+        await addDevice(validatedFields.data as any);
         revalidatePath('/');
         revalidatePath('/devices');
         return { message: `تمت إضافة الجهاز "${validatedFields.data.name}" بنجاح.` };
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
         return {
-            errors: { _form: ['حدث خطأ غير متوقع أثناء إضافة الجهاز.'] },
+            errors: { _form: [error.message || 'حدث خطأ غير متوقع أثناء إضافة الجهاز.'] },
+        };
+    }
+}
+
+const pppoeUserSchema = z.object({
+    serverId: z.string(),
+    username: z.string().min(1, "اسم المستخدم مطلوب."),
+    password: z.string().min(1, "كلمة المرور مطلوبة."),
+    service: z.string().min(1, "الخدمة مطلوبة."),
+    profile: z.string().min(1, "البروفايل مطلوب."),
+});
+
+
+export async function handleAddPppoeUser(prevState: any, formData: FormData): Promise<{ errors?: any; message?: string; }> {
+    const validatedFields = pppoeUserSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    try {
+        await addPppoeUser(validatedFields.data);
+        revalidatePath(`/servers/${validatedFields.data.serverId}`);
+        return { message: `تمت إضافة المستخدم ${validatedFields.data.username} بنجاح.` };
+    } catch (error: any) {
+        console.error(error);
+        return {
+            errors: { _form: [error.message || 'حدث خطأ غير متوقع أثناء إضافة المستخدم.'] },
         };
     }
 }

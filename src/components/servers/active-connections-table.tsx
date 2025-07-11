@@ -38,6 +38,8 @@ export function ActiveConnectionsTable({ serverId, serverName }: { serverId: str
       setLoading(false);
     };
     fetchData();
+    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
   }, [serverId]);
 
   const filteredUsers = users.filter((user) =>
@@ -115,6 +117,7 @@ export function ActiveConnectionsTable({ serverId, serverName }: { serverId: str
         open={isAddUserDialogOpen}
         onOpenChange={setAddUserDialogOpen}
         serverName={serverName}
+        serverId={serverId}
       />
     </>
   );
