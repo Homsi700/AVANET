@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { handlePrediction, PredictionState } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -23,7 +24,7 @@ function SubmitButton() {
 }
 
 export function PredictClient() {
-  const [state, formAction] = useFormState(handlePrediction, initialState);
+  const [state, formAction] = useActionState(handlePrediction, initialState);
 
   return (
     <div className="mx-auto max-w-4xl">

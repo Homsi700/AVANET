@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,8 +41,8 @@ export function AddDeviceDialog({ open, onOpenChange }: AddDeviceDialogProps) {
   const { toast } = useToast();
   
   // Use separate form states for server and dish
-  const [serverState, serverFormAction] = useFormState(handleAddDevice, initialState);
-  const [dishState, dishFormAction] = useFormState(handleAddDevice, initialState);
+  const [serverState, serverFormAction] = useActionState(handleAddDevice, initialState);
+  const [dishState, dishFormAction] = useActionState(handleAddDevice, initialState);
 
   const serverFormRef = useRef<HTMLFormElement>(null);
   const dishFormRef = useRef<HTMLFormElement>(null);

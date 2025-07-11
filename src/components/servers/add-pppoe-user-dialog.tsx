@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +49,7 @@ function SubmitButton() {
 
 export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }: AddPppoeUserDialogProps) {
     const { toast } = useToast();
-    const [state, formAction] = useFormState(handleAddPppoeUser, initialState);
+    const [state, formAction] = useActionState(handleAddPppoeUser, initialState);
     const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
