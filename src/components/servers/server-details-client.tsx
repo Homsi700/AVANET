@@ -70,7 +70,7 @@ export function ServerDetailsClient({ server }: { server: Server }) {
         </div>
         
         <div className="mt-6 grid grid-cols-1 gap-6">
-            <ActiveConnectionsTable serverId={server.id} />
+            <ActiveConnectionsTable serverId={server.id} serverName={server.name} />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6">

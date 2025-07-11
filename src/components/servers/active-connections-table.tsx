@@ -22,11 +22,13 @@ import { PlusCircle, Search } from 'lucide-react';
 import { getPppoeUsers } from '@/lib/data';
 import type { PppoeUser } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { AddPppoeUserDialog } from './add-pppoe-user-dialog';
 
-export function ActiveConnectionsTable({ serverId }: { serverId: string }) {
+export function ActiveConnectionsTable({ serverId, serverName }: { serverId: string, serverName: string }) {
   const [users, setUsers] = useState<PppoeUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddUserDialogOpen, setAddUserDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,6 +45,7 @@ export function ActiveConnectionsTable({ serverId }: { serverId: string }) {
   );
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -52,7 +55,7 @@ export function ActiveConnectionsTable({ serverId }: { serverId: string }) {
                     عرض وتصفية الحسابات المتصلة حاليًا.
                 </CardDescription>
             </div>
-            <Button>
+            <Button onClick={() => setAddUserDialogOpen(true)}>
                 <PlusCircle className="me-2" />
                 <span>إضافة حساب</span>
             </Button>
@@ -99,8 +102,8 @@ export function ActiveConnectionsTable({ serverId }: { serverId: string }) {
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                        لم يتم العثور على مستخدمين.
+                    <TableCell colSpan={6} className="text-center py-10">
+                        لا توجد حسابات PPPoE نشطة لعرضها.
                     </TableCell>
                 </TableRow>
             )}
@@ -108,5 +111,11 @@ export function ActiveConnectionsTable({ serverId }: { serverId: string }) {
         </Table>
       </CardContent>
     </Card>
+     <AddPppoeUserDialog
+        open={isAddUserDialogOpen}
+        onOpenChange={setAddUserDialogOpen}
+        serverName={serverName}
+      />
+    </>
   );
 }
