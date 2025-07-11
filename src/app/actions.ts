@@ -45,15 +45,60 @@ export async function handlePrediction(prevState: PredictionState, formData: For
   }
 }
 
+// Custom Zod preprocessor to split IP and port
+const ipWithPortSchema = z.string().transform((val, ctx) => {
+    const [ip, port] = val.split(':');
+    const ipValidation = z.string().ip().safeParse(ip);
+    if (!ipValidation.success) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "عنوان IP غير صالح.",
+        });
+        return z.NEVER;
+    }
+    return { ip, port: port ? parseInt(port, 10) : undefined };
+});
+
+
 const serverSchema = z.object({
   id: z.string().optional(),
   type: z.literal('server').or(z.literal('MikroTik')),
   name: z.string().min(1, { message: 'الاسم مطلوب.' }),
-  ip: z.string().ip({ message: 'عنوان IP غير صالح.' }),
+  ip: z.string().min(1, { message: 'عنوان IP مطلوب.' }),
   port: z.coerce.number().optional(),
   username: z.string().min(1, { message: 'اسم المستخدم مطلوب.' }),
   password: z.string().min(1, { message: 'كلمة المرور مطلوبة.' }),
+}).superRefine((data, ctx) => {
+    if (data.ip.includes(':')) {
+        const [ip, portStr] = data.ip.split(':');
+        const ipValidation = z.string().ip().safeParse(ip);
+        if (!ipValidation.success) {
+             ctx.addIssue({
+                path: ['ip'],
+                code: z.ZodIssueCode.custom,
+                message: "الجزء الخاص بعنوان IP غير صالح.",
+            });
+        }
+        const portNumber = parseInt(portStr, 10);
+        if (portStr && (isNaN(portNumber) || portNumber <= 0 || portNumber > 65535)) {
+            ctx.addIssue({
+                path: ['ip'],
+                code: z.ZodIssueCode.custom,
+                message: "الجزء الخاص بالمنفذ غير صالح.",
+            });
+        }
+    } else {
+        const ipValidation = z.string().ip().safeParse(data.ip);
+        if (!ipValidation.success) {
+             ctx.addIssue({
+                path: ['ip'],
+                code: z.ZodIssueCode.custom,
+                message: "عنوان IP غير صالح.",
+            });
+        }
+    }
 });
+
 
 const dishSchema = z.object({
     id: z.string().optional(),
