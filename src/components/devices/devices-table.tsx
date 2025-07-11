@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import {
   Table,
   TableBody,
@@ -17,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2, Loader2 } from 'lucide-react';
 import type { Device, Server } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
@@ -30,6 +31,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { handleDeleteDevice } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 const getStatusVariant = (status: 'Online' | 'Offline'): 'default' | 'destructive' => {
   return status === 'Online' ? 'default' : 'destructive';
@@ -38,19 +41,34 @@ const getStatusVariant = (status: 'Online' | 'Offline'): 'default' | 'destructiv
 export function DevicesTable({ devices }: { devices: Device[] }) {
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const handleDeleteClick = (device: Device) => {
     setSelectedDevice(device);
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedDevice) {
-      console.log(`Deleting device: ${selectedDevice.name}`);
-      // Add actual delete logic here
-    }
-    setDeleteDialogOpen(false);
-    setSelectedDevice(null);
+  const confirmDelete = async () => {
+    if (!selectedDevice) return;
+
+    startTransition(async () => {
+        const result = await handleDeleteDevice(selectedDevice.id);
+        if (result.success) {
+            toast({
+                title: 'نجاح',
+                description: result.message,
+            });
+        } else {
+            toast({
+                title: 'خطأ',
+                description: result.message,
+                variant: 'destructive',
+            });
+        }
+        setDeleteDialogOpen(false);
+        setSelectedDevice(null);
+    });
   };
 
   return (
@@ -78,17 +96,17 @@ export function DevicesTable({ devices }: { devices: Device[] }) {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button variant="ghost" className="h-8 w-8 p-0" disabled={isPending}>
                         <span className="sr-only">فتح القائمة</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem disabled>
                         <Pencil className="me-2" />
                         <span>تعديل</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteClick(device)}>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(device)} disabled={isPending}>
                         <Trash2 className="me-2 text-destructive" />
                         <span className="text-destructive">حذف</span>
                       </DropdownMenuItem>
@@ -117,7 +135,9 @@ export function DevicesTable({ devices }: { devices: Device[] }) {
                 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
               )}
               onClick={confirmDelete}
+              disabled={isPending}
             >
+              {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               حذف
             </AlertDialogAction>
           </AlertDialogFooter>

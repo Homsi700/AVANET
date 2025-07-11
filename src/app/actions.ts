@@ -2,7 +2,7 @@
 'use server';
 
 import { predictNetworkIssues, PredictNetworkIssuesOutput } from '@/ai/flows/predict-network-issues';
-import { addDevice, addPppoeUser } from '@/lib/data';
+import { addDevice, addPppoeUser, deleteDeviceById } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -125,5 +125,17 @@ export async function handleAddPppoeUser(prevState: any, formData: FormData): Pr
         return {
             errors: { _form: [error.message || 'حدث خطأ غير متوقع أثناء إضافة المستخدم.'] },
         };
+    }
+}
+
+export async function handleDeleteDevice(deviceId: string) {
+    try {
+        await deleteDeviceById(deviceId);
+        revalidatePath('/');
+        revalidatePath('/devices');
+        return { success: true, message: 'تم حذف الجهاز بنجاح.' };
+    } catch (error: any) {
+        console.error(error);
+        return { success: false, message: error.message || 'حدث خطأ أثناء حذف الجهاز.' };
     }
 }

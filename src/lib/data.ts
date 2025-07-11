@@ -216,3 +216,14 @@ export const addPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> 
     const credentials = getDeviceCredentials(server);
     await api.addMikroTikPppoeUser({ ...payload, ...credentials });
 }
+
+export const deleteDeviceById = async (id: string): Promise<void> => {
+    const db = await readDB();
+    const initialLength = db.devices.length;
+    db.devices = db.devices.filter(device => device.id !== id);
+    if (db.devices.length === initialLength) {
+        throw new Error('لم يتم العثور على الجهاز لحذفه.');
+    }
+    await writeDB(db);
+    console.log(`Device with id ${id} deleted from db.json.`);
+}
