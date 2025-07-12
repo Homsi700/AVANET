@@ -185,32 +185,32 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
              throw new Error(`Could not establish API connection to ${credentials.ip} on attempted ports.`);
         }
 
-        const interfaces = await conn.write('/interface/print');
+        const interfaces = await conn.write('/interface/print', ['?.proplist=.id,name,running']);
         const statsMap = new Map<string, any>();
 
-        // Iterate through each interface and monitor it individually
+        // Iterate through each interface and monitor it individually by its .id
         for (const iface of interfaces) {
-            const ifaceName = iface.name;
-            if (!ifaceName) continue; // Skip interfaces without a name
+            const ifaceId = iface['.id'];
+            if (!ifaceId) continue; // Skip interfaces without an ID
 
             try {
-                // Use `=interface=${ifaceName}` which works even with spaces on single lookups
-                const trafficStream = conn.stream(['/interface/monitor-traffic', `=interface=${ifaceName}`, '=once=']);
+                // Use `find` with `.id` which is the most reliable way to select an item.
+                const trafficStream = conn.stream(['/interface/monitor-traffic', `?=.id=${ifaceId}`, '=once=']);
                 const trafficData: any = await new Promise((resolve, reject) => {
                     trafficStream.once('data', resolve);
                     trafficStream.once('error', reject);
-                    setTimeout(() => reject(new Error(`Timeout monitoring interface: ${ifaceName}`)), 2000); // 2s timeout per interface
+                    setTimeout(() => reject(new Error(`Timeout monitoring interface: ${iface.name} (${ifaceId})`)), 2000); // 2s timeout per interface
                 });
-                statsMap.set(ifaceName, trafficData);
+                statsMap.set(ifaceId, trafficData);
             } catch (error) {
-                console.error(`[API] Could not monitor traffic for interface "${ifaceName}":`, error);
+                console.error(`[API] Could not monitor traffic for interface "${iface.name}" (.id: ${ifaceId}):`, error);
                 // Set a default/error state for this interface's traffic
-                statsMap.set(ifaceName, { 'rx-bits-per-second': 0, 'tx-bits-per-second': 0 });
+                statsMap.set(ifaceId, { 'rx-bits-per-second': 0, 'tx-bits-per-second': 0 });
             }
         }
         
         return interfaces.map((iface: any) => {
-            const traffic = statsMap.get(iface.name);
+            const traffic = statsMap.get(iface['.id']);
             return {
                 id: iface['.id'],
                 name: iface.name,
