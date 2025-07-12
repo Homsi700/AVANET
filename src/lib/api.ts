@@ -186,39 +186,41 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
         }
 
         const interfaces = await conn.write('/interface/print', ['?.proplist=.id,name,running']);
-        const statsMap = new Map<string, any>();
+        const stats: InterfaceStat[] = [];
 
-        // Iterate through each interface and monitor it individually by its .id
         for (const iface of interfaces) {
             const ifaceId = iface['.id'];
-            if (!ifaceId) continue; // Skip interfaces without an ID
+            if (!ifaceId) continue;
 
             try {
-                // Use `find` with `.id` which is the most reliable way to select an item.
-                const trafficStream = conn.stream(['/interface/monitor-traffic', `?=.id=${ifaceId}`, '=once=']);
-                const trafficData: any = await new Promise((resolve, reject) => {
-                    trafficStream.once('data', resolve);
-                    trafficStream.once('error', reject);
-                    setTimeout(() => reject(new Error(`Timeout monitoring interface: ${iface.name} (${ifaceId})`)), 2000); // 2s timeout per interface
+                const trafficData = await conn.write('/interface/monitor-traffic', [
+                    `=.id=${ifaceId}`,
+                    '=once='
+                ]);
+
+                const traffic = trafficData[0];
+                stats.push({
+                    id: iface['.id'],
+                    name: iface.name,
+                    status: iface.running ? 'Running' : 'Down',
+                    rxRate: traffic ? formatRate(traffic['rx-bits-per-second']) : '0 bps',
+                    txRate: traffic ? formatRate(traffic['tx-bits-per-second']) : '0 bps',
                 });
-                statsMap.set(ifaceId, trafficData);
+
             } catch (error) {
                 console.error(`[API] Could not monitor traffic for interface "${iface.name}" (.id: ${ifaceId}):`, error);
-                // Set a default/error state for this interface's traffic
-                statsMap.set(ifaceId, { 'rx-bits-per-second': 0, 'tx-bits-per-second': 0 });
+                // Push a default state for this interface on error
+                stats.push({
+                    id: iface['.id'],
+                    name: iface.name,
+                    status: iface.running ? 'Running' : 'Down',
+                    rxRate: 'Error',
+                    txRate: 'Error',
+                });
             }
         }
         
-        return interfaces.map((iface: any) => {
-            const traffic = statsMap.get(iface['.id']);
-            return {
-                id: iface['.id'],
-                name: iface.name,
-                status: iface.running ? 'Running' : 'Down',
-                rxRate: traffic ? formatRate(traffic['rx-bits-per-second']) : '0 bps',
-                txRate: traffic ? formatRate(traffic['tx-bits-per-second']) : '0 bps',
-            };
-        });
+        return stats;
 
     } catch (err: any) {
         console.error(`[ Server ] Error fetching interface stats: ${err.message}`);
