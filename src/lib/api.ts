@@ -10,7 +10,7 @@ import { Transform } from 'stream';
 async function executeMikroTikCommand(credentials: DeviceCredentials, command: string, params: any[] = []): Promise<any[]> {
     const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
     let lastError: Error | null = null;
-    let finalPort = portsToTry.join(' & ');
+    let finalPort = credentials.port ? credentials.port.toString() : portsToTry.join(' & ');
 
     for (const port of portsToTry) {
         const conn = new RouterOSAPI({
@@ -37,15 +37,10 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
             }
         }
     }
-
-    // If all ports failed, throw the last captured error.
-    if (credentials.port) {
-        finalPort = credentials.port.toString();
-    }
     
     if (lastError) {
          if ((lastError as any).code === 'ETIMEDOUT' || (lastError instanceof Error && lastError.message.includes('Timed out'))) {
-             throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity and firewall rules. Ensure the API service (port 8728 by default) is enabled and accessible on the MikroTik device, not the WinBox port.`);
+             throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity and firewall rules. Ensure the API service (port ${portsToTry.join('/')}) is enabled and accessible on the MikroTik device, not the WinBox port.`);
         }
         if (lastError instanceof RosException) {
             throw new Error(`MikroTik API Error: ${lastError.message}. Check your username and password.`);
@@ -157,7 +152,7 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 
 /**
  * Fetches interface statistics from a MikroTik server.
- * Handles large numbers of interfaces by chunking requests.
+ * This version iterates through each interface individually for better compatibility with older RouterOS versions.
  * @param credentials - The device credentials.
  * @returns A promise that resolves with an array of interface stats.
  */
@@ -166,7 +161,6 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
     
     let conn: RouterOSAPI | null = null;
     try {
-        // Establish a single connection for all operations
         const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
         
         for (const port of portsToTry) {
@@ -179,7 +173,7 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
                     timeout: 15,
                 });
                 await conn.connect();
-                break; // Exit loop if connection is successful
+                break;
              } catch (err) {
                  console.log(`[API] Connection attempt to ${credentials.ip}:${port} failed.`);
                  if (conn && conn.connected) await conn.close();
@@ -191,45 +185,29 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
              throw new Error(`Could not establish API connection to ${credentials.ip} on attempted ports.`);
         }
 
-        // Get initial interface list
         const interfaces = await conn.write('/interface/print');
-        // Filter out any interfaces that don't have a name or have an empty name, and handle spaces.
-        const interfaceNames = interfaces
-            .map((i: any) => i.name)
-            .filter((name: any): name is string => typeof name === 'string' && name.trim() !== '')
-            .map(name => name.includes(' ') ? `"${name}"` : name); // Wrap names with spaces in quotes
-
-        // Split interface names into chunks to avoid API limits
-        const chunks = chunkArray(interfaceNames, 90); // Chunk size of 90, well below the 100 limit
-        const allTrafficData: any[] = [];
-
-        for (const chunk of chunks) {
-             if (chunk.length === 0) continue; // Skip empty chunks
-            const chunkNames = chunk.join(',');
-            const stream = conn.stream(['/interface/monitor-traffic', `=interface=${chunkNames}`, '=once=']);
-            
-            const chunkData: any[] = await new Promise((resolve, reject) => {
-                const collectedData: any[] = [];
-                const dataTimeout = setTimeout(() => {
-                    stream.close();
-                    reject(new Error("Timeout waiting for interface data from stream chunk."));
-                }, 10000); // 10 second timeout for each chunk
-
-                stream.on('data', (dataChunk) => collectedData.push(dataChunk));
-                stream.on('error', (err) => {
-                    clearTimeout(dataTimeout);
-                    reject(err);
-                });
-                stream.on('end', () => {
-                    clearTimeout(dataTimeout);
-                    resolve(collectedData);
-                });
-            });
-            allTrafficData.push(...chunkData);
-        }
-
         const statsMap = new Map<string, any>();
-        allTrafficData.forEach(stat => statsMap.set(stat.name, stat));
+
+        // Iterate through each interface and monitor it individually
+        for (const iface of interfaces) {
+            const ifaceName = iface.name;
+            if (!ifaceName) continue; // Skip interfaces without a name
+
+            try {
+                // Use `=interface=${ifaceName}` which works even with spaces on single lookups
+                const trafficStream = conn.stream(['/interface/monitor-traffic', `=interface=${ifaceName}`, '=once=']);
+                const trafficData: any = await new Promise((resolve, reject) => {
+                    trafficStream.once('data', resolve);
+                    trafficStream.once('error', reject);
+                    setTimeout(() => reject(new Error(`Timeout monitoring interface: ${ifaceName}`)), 2000); // 2s timeout per interface
+                });
+                statsMap.set(ifaceName, trafficData);
+            } catch (error) {
+                console.error(`[API] Could not monitor traffic for interface "${ifaceName}":`, error);
+                // Set a default/error state for this interface's traffic
+                statsMap.set(ifaceName, { 'rx-bits-per-second': 0, 'tx-bits-per-second': 0 });
+            }
+        }
         
         return interfaces.map((iface: any) => {
             const traffic = statsMap.get(iface.name);
@@ -244,7 +222,6 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
 
     } catch (err: any) {
         console.error(`[ Server ] Error fetching interface stats: ${err.message}`);
-        // Re-throw the error to be handled by the calling function in data.ts
         throw err;
     } finally {
         if (conn && conn.connected) {
