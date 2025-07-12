@@ -174,6 +174,7 @@ export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => 
             await api.testDishConnection(credentials);
         }
     } catch(e: any) {
+        console.error(e.message); // Add this line to log the original error
         throw new Error(`فشل الاتصال بالجهاز: ${e.message}`);
     }
    
