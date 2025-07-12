@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Server, PppoeUser, InterfaceStat, TrafficData, ResourceData } from '@/lib/types';

@@ -1,4 +1,5 @@
 
+
 import type { Server, Dish, PppoeUser, InterfaceStat, TrafficData, Device, AddPppoeUserPayload, NewDevicePayload, DeviceCredentials, ResourceData } from './types';
 import * as api from './api';
 import { readDB, writeDB } from './db';
@@ -123,7 +124,7 @@ export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat
         const credentials = getDeviceCredentials(server);
         return await api.fetchInterfaceStats(credentials);
     } catch (error: any) {
-        console.error(`Failed to fetch interface stats for server ${serverId}:`, error);
+        console.error(`[ Server ] Error fetching interface stats: ${error.message}`);
         return [];
     }
 }
