@@ -33,6 +33,7 @@ type AddPppoeUserDialogProps = {
   onOpenChange: (open: boolean) => void;
   serverId: string;
   serverName: string;
+  pppoeProfiles: string[];
 };
 
 const initialState = {};
@@ -48,7 +49,7 @@ function SubmitButton() {
 }
 
 
-export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }: AddPppoeUserDialogProps) {
+export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName, pppoeProfiles }: AddPppoeUserDialogProps) {
     const { toast } = useToast();
     const [state, formAction] = useActionState(handleAddPppoeUser, initialState);
     const formRef = useRef<HTMLFormElement>(null);
@@ -101,13 +102,19 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                     <Label htmlFor="service" className="text-right">
                     الخدمة
                     </Label>
-                    <Select name="service">
+                    <Select name="service" defaultValue="pppoe">
                         <SelectTrigger className="col-span-3">
                             <SelectValue placeholder="اختر الخدمة" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="pppoe">pppoe</SelectItem>
+                            <SelectItem value="any">any</SelectItem>
+                            <SelectItem value="async">async</SelectItem>
                             <SelectItem value="hotspot">hotspot</SelectItem>
+                            <SelectItem value="l2tp">l2tp</SelectItem>
+                            <SelectItem value="ovpn">ovpn</SelectItem>
+                            <SelectItem value="pptp">pptp</SelectItem>
+                            <SelectItem value="sstp">sstp</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -122,9 +129,17 @@ export function AddPppoeUserDialog({ open, onOpenChange, serverId, serverName }:
                             <SelectValue placeholder="اختر بروفايل" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="pro-5mbps">pro-5mbps</SelectItem>
-                            <SelectItem value="basic-2mbps">basic-2mbps</SelectItem>
-                            <SelectItem value="pro-10mbps">pro-10mbps</SelectItem>
+                          {pppoeProfiles && pppoeProfiles.length > 0 ? (
+                            pppoeProfiles.map((profile) => (
+                              <SelectItem key={profile} value={profile}>
+                                {profile}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="default" disabled>
+                              لا توجد بروفايلات متاحة
+                            </SelectItem>
+                          )}
                         </SelectContent>
                     </Select>
                 </div>

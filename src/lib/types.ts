@@ -78,7 +78,7 @@ export type NewDevicePayload =
 export type AddPppoeUserPayload = {
     serverId: string;
     username: string;
-    password: string;
+    userPassword: string; // Renamed from 'password' to avoid conflict with server password
     service: string;
     profile: string;
 } & DeviceCredentials;

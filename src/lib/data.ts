@@ -95,6 +95,23 @@ export const getPppoeUsers = async (serverId: string): Promise<PppoeUser[]> => {
     }
 }
 
+export const getPppoeProfiles = async (serverId: string): Promise<string[]> => {
+    const db = await readDB();
+    const server = db.devices.find(s => s.id === serverId);
+    if (!server || server.type !== 'MikroTik') {
+        console.error(`Server with id ${serverId} not found or is not a MikroTik for getPppoeProfiles.`);
+        return [];
+    }
+    try {
+        const credentials = getDeviceCredentials(server);
+        return await api.fetchMikroTikProfiles(credentials);
+    } catch (error) {
+        console.error(`Failed to fetch PPPoE profiles for server ${serverId}:`, error);
+        // Return a default list on error to prevent UI crashing
+        return ['default'];
+    }
+};
+
 export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat[]> => {
     const db = await readDB();
     const server = db.devices.find(s => s.id === serverId);
@@ -238,7 +255,7 @@ export const updateDeviceById = async (id: string, deviceData: Partial<Device>):
     console.log(`Device with id ${id} updated in db.json.`);
 };
 
-export const addPppoeUser = async (payload: Omit<AddPppoeUserPayload, keyof DeviceCredentials>): Promise<void> => {
+export const addPppoeUser = async (payload: Omit<AddPppoeUserPayload, keyof DeviceCredentials | 'userPassword'> & {username: string, password: string}): Promise<void> => {
     const db = await readDB();
     const server = db.devices.find(d => d.id === payload.serverId);
     if (!server || server.type !== 'MikroTik') {
@@ -246,7 +263,11 @@ export const addPppoeUser = async (payload: Omit<AddPppoeUserPayload, keyof Devi
     }
     const credentials = getDeviceCredentials(server);
     // Combine the user payload with the server's credentials for the API call
-    const apiPayload: AddPppoeUserPayload = { ...payload, ...credentials };
+    const apiPayload: AddPppoeUserPayload = { 
+        ...credentials, 
+        ...payload,
+        userPassword: payload.password
+    };
     await api.addMikroTikPppoeUser(apiPayload);
 }
 

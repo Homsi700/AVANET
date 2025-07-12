@@ -23,7 +23,17 @@ import { PlusCircle, Search } from 'lucide-react';
 import type { PppoeUser } from '@/lib/types';
 import { AddPppoeUserDialog } from './add-pppoe-user-dialog';
 
-export function ActiveConnectionsTable({ serverId, serverName, initialUsers }: { serverId: string, serverName: string, initialUsers: PppoeUser[] }) {
+export function ActiveConnectionsTable({ 
+  serverId, 
+  serverName, 
+  initialUsers,
+  pppoeProfiles,
+}: { 
+  serverId: string, 
+  serverName: string, 
+  initialUsers: PppoeUser[],
+  pppoeProfiles: string[],
+}) {
   const [users, setUsers] = useState<PppoeUser[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddUserDialogOpen, setAddUserDialogOpen] = useState(false);
@@ -101,6 +111,7 @@ export function ActiveConnectionsTable({ serverId, serverName, initialUsers }: {
         onOpenChange={setAddUserDialogOpen}
         serverName={serverName}
         serverId={serverId}
+        pppoeProfiles={pppoeProfiles}
       />
     </>
   );

@@ -10,6 +10,7 @@ import { Transform } from 'stream';
 async function executeMikroTikCommand(credentials: DeviceCredentials, command: string, params: any[] = []): Promise<any[]> {
     const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
     let lastError: Error | null = null;
+    let finalPort = portsToTry.join(' & ');
 
     for (const port of portsToTry) {
         const conn = new RouterOSAPI({
@@ -38,7 +39,10 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
     }
 
     // If all ports failed, throw the last captured error.
-    const finalPort = credentials.port ? credentials.port.toString() : '8728 & 7070';
+    if (credentials.port) {
+        finalPort = credentials.port.toString();
+    }
+    
     if (lastError) {
          if ((lastError as any).code === 'ETIMEDOUT' || (lastError instanceof Error && lastError.message.includes('Timed out'))) {
              throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity and firewall rules. Ensure the API service (port 8728 by default) is enabled and accessible on the MikroTik device, not the WinBox port.`);
@@ -60,7 +64,7 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
  * @throws An error if the connection fails.
  */
 export const testMikroTikConnection = async (credentials: DeviceCredentials): Promise<void> => {
-    console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port || 'default ports'}`);
+    console.log(`[API] Testing connection to MikroTik: ${credentials.ip}:${credentials.port ? credentials.port : 'default ports'}`);
     // A simple command to check the connection.
     await executeMikroTikCommand(credentials, '/system/resource/print');
 }
@@ -90,21 +94,27 @@ export const fetchMikroTikStatus = async (credentials: DeviceCredentials): Promi
 }
 
 /**
+ * Fetches the available PPPoE profiles from a MikroTik server.
+ * @param credentials - The device credentials.
+ * @returns A promise that resolves with an array of profile names.
+ */
+export const fetchMikroTikProfiles = async (credentials: DeviceCredentials): Promise<string[]> => {
+    console.log(`[API] Fetching PPPoE profiles for: ${credentials.ip}`);
+    const results = await executeMikroTikCommand(credentials, '/ppp/profile/print', ['?.proplist=name']);
+    return results.map((profile: any) => profile.name);
+}
+
+
+/**
  * Adds a new PPPoE user to a MikroTik server.
  * @param payload - The PPPoE user details, including credentials.
  * @throws An error if adding the user fails.
  */
 export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
-    console.log(`[API] Adding PPPoE user '${payload.username}' to server ${payload.serverId}`);
-    const credentials: DeviceCredentials = {
-        ip: payload.ip,
-        username: payload.username, // This should be server username
-        password: payload.password, // This should be server password
-        port: payload.port
-    };
-    await executeMikroTikCommand(credentials, '/ppp/secret/add', [
+    console.log(`[API] Adding PPPoE user '${payload.username}' to server with IP ${payload.ip}`);
+    await executeMikroTikCommand(payload, '/ppp/secret/add', [
         `=name=${payload.username}`,
-        `=password=${payload.password}`,
+        `=password=${payload.userPassword}`,
         `=service=${payload.service}`,
         `=profile=${payload.profile}`,
     ]);
@@ -158,8 +168,7 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
     try {
         // Establish a single connection for all operations
         const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
-        let connectedPort: number | undefined;
-
+        
         for (const port of portsToTry) {
              try {
                 conn = new RouterOSAPI({
@@ -170,7 +179,6 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
                     timeout: 15,
                 });
                 await conn.connect();
-                connectedPort = port;
                 break; // Exit loop if connection is successful
              } catch (err) {
                  console.log(`[API] Connection attempt to ${credentials.ip}:${port} failed.`);

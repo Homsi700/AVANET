@@ -6,6 +6,7 @@ import {
   getInterfaceStats,
   getResourceData,
   getTrafficData,
+  getPppoeProfiles,
 } from '@/lib/data';
 import { PageHeader } from '@/components/layout/page-header';
 import { ServerDetailsClient } from '@/components/servers/server-details-client';
@@ -17,7 +18,8 @@ type ServerDetailPageProps = {
   params: { id: string };
 };
 
-export default async function ServerDetailPage({ params: { id } }: ServerDetailPageProps) {
+export default async function ServerDetailPage({ params }: ServerDetailPageProps) {
+  const { id } = params;
   const server = await getServerById(id);
 
   if (!server) {
@@ -25,12 +27,13 @@ export default async function ServerDetailPage({ params: { id } }: ServerDetailP
   }
 
   // Fetch all required data on the server
-  const [pppoeUsers, interfaceStats, resourceData, trafficData] =
+  const [pppoeUsers, interfaceStats, resourceData, trafficData, pppoeProfiles] =
     await Promise.all([
       getPppoeUsers(server.id),
       getInterfaceStats(server.id),
       getResourceData(server.id),
       getTrafficData(server.id),
+      getPppoeProfiles(server.id),
     ]);
 
   return (
@@ -49,6 +52,7 @@ export default async function ServerDetailPage({ params: { id } }: ServerDetailP
         initialInterfaceStats={interfaceStats}
         initialResourceData={resourceData}
         initialTrafficData={trafficData}
+        initialPppoeProfiles={pppoeProfiles}
       />
     </div>
   );

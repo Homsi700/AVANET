@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { AddPppoeUserDialog } from '../servers/add-pppoe-user-dialog';
+import { getPppoeProfiles } from '@/lib/data';
 
 function isServer(device: Device): device is Server {
   return device.type === 'MikroTik';
@@ -46,14 +47,20 @@ const getStatusClass = (status: 'Online' | 'Offline'): string => {
 
 export function DeviceCard({ device }: { device: Device }) {
   const [isAddUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [profiles, setProfiles] = useState<string[]>([]);
   
   const linkHref = isServer(device) ? `/servers/${device.id}` : `/dishes/${device.id}`;
   const Icon = isServer(device) ? ServerIcon : Wifi;
   
-  const handleAddUserClick = (e: React.MouseEvent) => {
+  const handleAddUserClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setAddUserDialogOpen(true);
+    if (isServer(device)) {
+        // Fetch profiles when the button is clicked
+        const fetchedProfiles = await getPppoeProfiles(device.id);
+        setProfiles(fetchedProfiles);
+        setAddUserDialogOpen(true);
+    }
   }
 
   return (
@@ -137,6 +144,7 @@ export function DeviceCard({ device }: { device: Device }) {
           onOpenChange={setAddUserDialogOpen}
           serverName={device.name}
           serverId={device.id}
+          pppoeProfiles={profiles}
         />
       )}
     </>

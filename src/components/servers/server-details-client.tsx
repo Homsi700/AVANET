@@ -20,6 +20,7 @@ type ServerDetailsClientProps = {
     initialInterfaceStats: InterfaceStat[];
     initialTrafficData: TrafficData;
     initialResourceData: ResourceData;
+    initialPppoeProfiles: string[];
 }
 
 export function ServerDetailsClient({ 
@@ -28,6 +29,7 @@ export function ServerDetailsClient({
     initialInterfaceStats,
     initialTrafficData,
     initialResourceData,
+    initialPppoeProfiles,
 }: ServerDetailsClientProps) {
   return (
     <ScrollArea className="flex-1">
@@ -93,7 +95,12 @@ export function ServerDetailsClient({
         </div>
         
         <div className="mt-6 grid grid-cols-1 gap-6">
-            <ActiveConnectionsTable serverId={server.id} serverName={server.name} initialUsers={initialPppoeUsers} />
+            <ActiveConnectionsTable 
+              serverId={server.id} 
+              serverName={server.name} 
+              initialUsers={initialPppoeUsers}
+              pppoeProfiles={initialPppoeProfiles}
+            />
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6">
