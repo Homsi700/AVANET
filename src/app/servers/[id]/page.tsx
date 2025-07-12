@@ -17,8 +17,7 @@ type ServerDetailPageProps = {
   params: { id: string };
 };
 
-export default async function ServerDetailPage({ params }: ServerDetailPageProps) {
-  const { id } = params;
+export default async function ServerDetailPage({ params: { id } }: ServerDetailPageProps) {
   const server = await getServerById(id);
 
   if (!server) {

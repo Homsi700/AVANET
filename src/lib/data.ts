@@ -105,7 +105,7 @@ export const getInterfaceStats = async (serverId: string): Promise<InterfaceStat
      try {
         const credentials = getDeviceCredentials(server);
         return await api.fetchInterfaceStats(credentials);
-    } catch (error) {
+    } catch (error: any) {
         console.error(`Failed to fetch interface stats for server ${serverId}:`, error);
         return [];
     }
@@ -162,7 +162,7 @@ export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => 
         username: deviceData.username,
         password: deviceData.password,
     };
-    if (deviceData.type === 'server') {
+    if (deviceData.type === 'server' && (deviceData as any).port) {
         credentials.port = (deviceData as any).port;
     }
 
@@ -174,7 +174,6 @@ export const addDevice = async (deviceData: NewDevicePayload): Promise<void> => 
             await api.testDishConnection(credentials);
         }
     } catch(e: any) {
-        console.error(e.message); // Add this line to log the original error
         throw new Error(`فشل الاتصال بالجهاز: ${e.message}`);
     }
    
@@ -239,14 +238,16 @@ export const updateDeviceById = async (id: string, deviceData: Partial<Device>):
     console.log(`Device with id ${id} updated in db.json.`);
 };
 
-export const addPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
+export const addPppoeUser = async (payload: Omit<AddPppoeUserPayload, keyof DeviceCredentials>): Promise<void> => {
     const db = await readDB();
     const server = db.devices.find(d => d.id === payload.serverId);
     if (!server || server.type !== 'MikroTik') {
         throw new Error("لم يتم العثور على السيرفر أو أنه ليس من نوع MikroTik.");
     }
     const credentials = getDeviceCredentials(server);
-    await api.addMikroTikPppoeUser({ ...payload, ...credentials });
+    // Combine the user payload with the server's credentials for the API call
+    const apiPayload: AddPppoeUserPayload = { ...payload, ...credentials };
+    await api.addMikroTikPppoeUser(apiPayload);
 }
 
 export const deleteDeviceById = async (id: string): Promise<void> => {

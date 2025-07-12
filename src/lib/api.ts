@@ -96,7 +96,14 @@ export const fetchMikroTikStatus = async (credentials: DeviceCredentials): Promi
  */
 export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
     console.log(`[API] Adding PPPoE user '${payload.username}' to server ${payload.serverId}`);
-    await executeMikroTikCommand(payload, '/ppp/secret/add', [
+    // We only need the device credentials part for the API call.
+    const credentials: DeviceCredentials = {
+        ip: payload.ip,
+        username: payload.username,
+        password: payload.password,
+        port: payload.port
+    };
+    await executeMikroTikCommand(credentials, '/ppp/secret/add', [
         `=name=${payload.username}`,
         `=password=${payload.password}`,
         `=service=${payload.service}`,
@@ -163,13 +170,15 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
 
         // Get initial interface list
         const interfaces = await conn.write('/interface/print');
-        const interfaceNames = interfaces.map((i: any) => i.name);
+        // Filter out any interfaces that don't have a name, just in case.
+        const interfaceNames = interfaces.map((i: any) => i.name).filter(Boolean);
 
         // Split interface names into chunks to avoid API limits
         const chunks = chunkArray(interfaceNames, 90); // Chunk size of 90, well below the 100 limit
         const allTrafficData: any[] = [];
 
         for (const chunk of chunks) {
+             if (chunk.length === 0) continue; // Skip empty chunks
             const chunkNames = chunk.join(',');
             const stream = conn.stream(['/interface/monitor-traffic', `=interface=${chunkNames}`, '=once=']);
             
