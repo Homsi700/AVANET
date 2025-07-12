@@ -17,7 +17,7 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
             user: credentials.username,
             password: credentials.password,
             port: port,
-            timeout: 5, // 5 second timeout
+            timeout: 10, // 10 second timeout
         });
 
         try {
