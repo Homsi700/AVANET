@@ -41,10 +41,10 @@ async function executeMikroTikCommand(credentials: DeviceCredentials, command: s
     const finalPort = credentials.port ? credentials.port.toString() : '8728 & 7070';
     if (lastError) {
          if ((lastError as any).code === 'ETIMEDOUT' || (lastError instanceof Error && lastError.message.includes('Timed out'))) {
-             throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity, firewall rules, and ensure the API service is enabled on the MikroTik device.`);
+             throw new Error(`Connection timed out to ${credentials.ip}:${finalPort}. Please check network connectivity and firewall rules. Ensure the API service (port 8728 by default) is enabled and accessible on the MikroTik device, not the WinBox port.`);
         }
         if (lastError instanceof RosException) {
-            throw new Error(`MikroTik API Error: ${lastError.message}`);
+            throw new Error(`MikroTik API Error: ${lastError.message}. Check your username and password.`);
         }
     }
     
@@ -96,11 +96,10 @@ export const fetchMikroTikStatus = async (credentials: DeviceCredentials): Promi
  */
 export const addMikroTikPppoeUser = async (payload: AddPppoeUserPayload): Promise<void> => {
     console.log(`[API] Adding PPPoE user '${payload.username}' to server ${payload.serverId}`);
-    // We only need the device credentials part for the API call.
     const credentials: DeviceCredentials = {
         ip: payload.ip,
-        username: payload.username,
-        password: payload.password,
+        username: payload.username, // This should be server username
+        password: payload.password, // This should be server password
         port: payload.port
     };
     await executeMikroTikCommand(credentials, '/ppp/secret/add', [
@@ -158,20 +157,36 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
     let conn: RouterOSAPI | null = null;
     try {
         // Establish a single connection for all operations
-        const port = credentials.port || 8728; // Using default if not provided, assuming successful single port connection
-        conn = new RouterOSAPI({
-            host: credentials.ip,
-            user: credentials.username,
-            password: credentials.password,
-            port: port,
-            timeout: 15,
-        });
-        await conn.connect();
+        const portsToTry = credentials.port ? [credentials.port] : [8728, 7070];
+        let connectedPort: number | undefined;
+
+        for (const port of portsToTry) {
+             try {
+                conn = new RouterOSAPI({
+                    host: credentials.ip,
+                    user: credentials.username,
+                    password: credentials.password,
+                    port: port,
+                    timeout: 15,
+                });
+                await conn.connect();
+                connectedPort = port;
+                break; // Exit loop if connection is successful
+             } catch (err) {
+                 console.log(`[API] Connection attempt to ${credentials.ip}:${port} failed.`);
+                 if (conn && conn.connected) await conn.close();
+                 conn = null;
+             }
+        }
+
+        if (!conn || !conn.connected) {
+             throw new Error(`Could not establish API connection to ${credentials.ip} on attempted ports.`);
+        }
 
         // Get initial interface list
         const interfaces = await conn.write('/interface/print');
-        // Filter out any interfaces that don't have a name, just in case.
-        const interfaceNames = interfaces.map((i: any) => i.name).filter(Boolean);
+        // Filter out any interfaces that don't have a name or have an empty name, just in case.
+        const interfaceNames = interfaces.map((i: any) => i.name).filter((name: any) => typeof name === 'string' && name.trim() !== '');
 
         // Split interface names into chunks to avoid API limits
         const chunks = chunkArray(interfaceNames, 90); // Chunk size of 90, well below the 100 limit
