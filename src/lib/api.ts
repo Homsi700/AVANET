@@ -193,8 +193,11 @@ export const fetchInterfaceStats = async (credentials: DeviceCredentials): Promi
 
         // Get initial interface list
         const interfaces = await conn.write('/interface/print');
-        // Filter out any interfaces that don't have a name or have an empty name, just in case.
-        const interfaceNames = interfaces.map((i: any) => i.name).filter((name: any) => typeof name === 'string' && name.trim() !== '');
+        // Filter out any interfaces that don't have a name or have an empty name, and handle spaces.
+        const interfaceNames = interfaces
+            .map((i: any) => i.name)
+            .filter((name: any): name is string => typeof name === 'string' && name.trim() !== '')
+            .map(name => name.includes(' ') ? `"${name}"` : name); // Wrap names with spaces in quotes
 
         // Split interface names into chunks to avoid API limits
         const chunks = chunkArray(interfaceNames, 90); // Chunk size of 90, well below the 100 limit
